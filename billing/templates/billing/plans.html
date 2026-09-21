@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VPS Plans</title>
+</head>
+<body>
+
+<h1>Choose Your VPS</h1>
+
+<p>Welcome, {{ user.username }}.</p>
+
+{% for plan in plans %}
+
+    <div>
+        <h2>{{ plan.name }}</h2>
+
+        <p>{{ plan.description }}</p>
+
+        <ul>
+            <li>{{ plan.cpu }} vCPU</li>
+            <li>{{ plan.ram }} GB RAM</li>
+            <li>{{ plan.storage }} GB Storage</li>
+        </ul>
+
+        <p>
+            ₱{{ plan.monthly_price }} / month
+        </p>
+
+        <a href="{% url 'select_plan' plan.id %}">
+            Select Plan
+        </a>
+    </div>
+
+    <hr>
+
+{% empty %}
+
+    <p>No VPS plans are currently available.</p>
+
+{% endfor %}
+
+</body>
+</html>

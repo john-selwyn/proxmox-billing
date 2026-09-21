@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Account</title>
+</head>
+<body>
+
+<h1>Create VPS Account</h1>
+
+<form method="post">
+    {% csrf_token %}
+
+    {{ form.as_p }}
+
+    <button type="submit">Create Account</button>
+</form>
+
+<a href="{% url 'home' %}">Back</a>
+
+</body>
+</html>

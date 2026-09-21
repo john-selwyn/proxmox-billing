@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>VPS Billing</title>
+</head>
+<body>
+
+<h1>VPS Hosting</h1>
+
+<p>Deploy your own virtual private server.</p>
+
+{% if user.is_authenticated %}
+    <p>Welcome, {{ user.username }}!</p>
+
+    <a href="{% url 'plans' %}">View VPS Plans</a>
+{% else %}
+    <a href="{% url 'register' %}">Create Account</a>
+    |
+    <a href="{% url 'login' %}">Login</a>
+{% endif %}
+
+</body>
+</html>
