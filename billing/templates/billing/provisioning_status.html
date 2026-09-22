@@ -1,0 +1,17 @@
+{% if order.invoice.status == 'PAID' %}
+<div class="notice">
+  <strong>Payment confirmed</strong>
+  {% if order.status == 'ACTIVE' %}
+    <p>Your VPS is active.</p>
+  {% elif order.status == 'FAILED' %}
+    <p>VPS provisioning failed. Your payment remains recorded. Please contact support with order #{{ order.pk }}.</p>
+  {% elif order.status == 'PROVISIONING' %}
+    <p>Your VPS is provisioning. Status is updated by our billing service.</p>
+  {% elif order.status == 'PAID' %}
+    <p>Your order is waiting for provisioning.</p>
+  {% endif %}
+  {% if order.provisioning_error and order.status != 'FAILED' %}
+    <p>We could not confirm the latest provisioning status. Your payment is safe; support can check order #{{ order.pk }}.</p>
+  {% endif %}
+</div>
+{% endif %}

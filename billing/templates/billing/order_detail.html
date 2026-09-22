@@ -3,6 +3,7 @@
 <p class="eyebrow">ORDER DETAILS</p>
 <h1>Order #{{ order.pk }}</h1>
 <span class="badge {{ order.status|lower }}">{{ order.get_status_display }}</span>
+{% include "billing/provisioning_status.html" %}
 <dl class="details">
 <dt>Plan</dt>
 <dd>{{ order.plan.name }}</dd>

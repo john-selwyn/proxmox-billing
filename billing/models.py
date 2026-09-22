@@ -49,6 +49,16 @@ class Order(models.Model):
 
     checkout_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
 
+    # Billing-side request tracking, not a copy of the provisioning server's VPS model.
+    provisioning_status = models.CharField(max_length=30, blank=True, editable=False)
+    provisioning_vps_id = models.CharField(max_length=100, blank=True, editable=False)
+    provisioning_vmid = models.CharField(max_length=100, blank=True, editable=False)
+    provisioning_error = models.CharField(max_length=200, blank=True, editable=False)
+    provisioning_payload = models.JSONField(default=dict, blank=True, editable=False)
+    provisioning_lease = models.UUIDField(null=True, blank=True, editable=False)
+    provisioning_started_at = models.DateTimeField(null=True, blank=True, editable=False)
+    provisioning_checked_at = models.DateTimeField(null=True, blank=True, editable=False)
+
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
         PAID = "PAID", "Paid"

@@ -1,4 +1,4 @@
-"""Local billing operations; payment and provisioning integrations are deferred."""
+"""Order creation; payment recording and provisioning live in separate services."""
 from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.db import transaction

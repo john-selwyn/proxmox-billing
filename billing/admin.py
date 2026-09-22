@@ -47,6 +47,10 @@ class OrderAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = ("status", "billing_cycle")
+    readonly_fields = (
+        "provisioning_status", "provisioning_vps_id", "provisioning_vmid",
+        "provisioning_error", "provisioning_started_at", "provisioning_checked_at",
+    )
 
 
 @admin.register(Invoice)

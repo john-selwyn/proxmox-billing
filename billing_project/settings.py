@@ -139,6 +139,12 @@ STATIC_URL = 'static/'
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "home"
 
+# Origin only (no /api path). No integration request is made at startup.
+PROVISIONING_API_URL = os.getenv("PROVISIONING_API_URL", "")
+BILLING_API_SECRET = os.getenv("BILLING_API_SECRET", "")
+# Must match an OS identifier accepted by the existing provisioner.
+PROVISIONING_DEFAULT_OS = os.getenv("PROVISIONING_DEFAULT_OS", "Ubuntu 26.04")
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
