@@ -1,0 +1,39 @@
+{% extends 'billing/base.html' %}{% block title %}My invoices{% endblock %}{% block content %}
+<p class="eyebrow">BILLING HISTORY</p>
+<h1>My invoices</h1>
+<p class="muted">Your invoice totals, due dates, and payment status.</p>
+<section class="card">{% if page_obj %}
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Invoice</th>
+<th>Order</th>
+<th>Amount (PHP)</th>
+<th>Status</th>
+<th>Due date</th>
+<th>
+</th>
+</tr>
+</thead>
+<tbody>{% for invoice in page_obj %}<tr>
+<td>{{ invoice.invoice_number }}</td>
+<td>
+<a href="{% url 'order_detail' invoice.order_id %}">#{{ invoice.order_id }}</a>
+</td>
+<td>{{ invoice.amount }}</td>
+<td>
+<span class="badge {{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
+</td>
+<td>{{ invoice.due_date|date:'M j, Y' }}</td>
+<td>
+<a href="{% url 'invoice' invoice.order_id %}" aria-label="View {{ invoice.invoice_number }}">View &rarr;</a>
+</td>
+</tr>{% endfor %}</tbody>
+</table>
+</div>{% else %}
+<div class="empty">
+<h2>No invoices yet.</h2>
+<p>Your invoice will appear here when you confirm an order.</p>
+<a href="{% url 'plans' %}">Explore plans &rarr;</a>
+</div>{% endif %}{% include 'billing/pagination.html' %}</section>{% endblock %}

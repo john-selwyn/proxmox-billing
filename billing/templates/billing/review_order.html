@@ -1,0 +1,23 @@
+{% extends 'billing/base.html' %}{% block title %}Review order{% endblock %}{% block content %}
+<p class="eyebrow">01 SELECT &nbsp; / &nbsp; 02 REVIEW &nbsp; / &nbsp; 03 INVOICE</p>
+<section class="card narrow">
+<h1>Review your order</h1>
+<p class="muted">Check your plan and billing cycle before confirming.</p>
+<dl class="details">
+<dt>Plan</dt>
+<dd>{{ plan.name }}</dd>
+<dt>Resources</dt>
+<dd>{{ plan.cpu }} vCPU / {{ plan.ram }} GB RAM / {{ plan.storage }} GB storage</dd>
+<dt>Billing cycle</dt>
+<dd>{{ cycle|title }}</dd>
+<dt>Total (PHP)</dt>
+<dd class="total">{{ amount }}</dd>
+</dl>
+<p class="notice">Your order will be pending payment. Online payment integration coming next.</p>
+<form method="post" action="{% url 'order_confirm' %}">{% csrf_token %}<input type="hidden" name="checkout_token" value="{{ checkout_token }}">
+<button>Confirm order &amp; create invoice</button>
+</form>
+<p>
+<a href="{% url 'select_plan' plan.pk %}">Change selection</a>
+</p>
+</section>{% endblock %}

@@ -1,0 +1,6 @@
+{% extends 'billing/base.html' %}{% block title %}Review needed{% endblock %}{% block content %}
+<section class="card narrow">
+<h1>Please review your order again.</h1>
+<p role="alert">{{ error }}</p>
+<a class="button" href="{% url 'plans' %}">Return to plans</a>
+</section>{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'billing/base.html' %}{% block title %}{{ invoice.invoice_number }}{% endblock %}{% block content %}<a href="{% url 'invoices' %}">&larr; My invoices</a>
+<article class="card invoice">
+<div class="page-heading">
+<div>
+<p class="eyebrow">INVOICE</p>
+<h1>{{ invoice.invoice_number }}</h1>
+</div>
+<span class="badge {{ invoice.status|lower }}">{{ invoice.get_status_display }}</span>
+</div>
+<div class="split">
+<section>
+<p class="eyebrow">BILLED TO</p>
+<h2>{{ order.customer.full_name }}</h2>
+<p>{{ order.customer.company }}</p>
+</section>
+<dl class="details">
+<dt>Order</dt>
+<dd>
+<a href="{% url 'order_detail' order.pk %}">#{{ order.pk }}</a>
+</dd>
+<dt>Issued</dt>
+<dd>{{ invoice.created_at|date:'M j, Y H:i T' }}</dd>
+<dt>Due</dt>
+<dd>{{ invoice.due_date|date:'M j, Y H:i T' }}</dd>
+</dl>
+</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Description</th>
+<th>Billing cycle</th>
+<th>Amount (PHP)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>{{ order.plan.name }}</td>
+<td>{{ order.get_billing_cycle_display }}</td>
+<td>{{ invoice.amount }}</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="invoice-total">Total <strong>PHP {{ invoice.amount }}</strong>
+</p>{% if invoice.status == 'PENDING' or invoice.status == 'OVERDUE' %}
+<div class="notice">
+<strong>Pending payment</strong>
+<p>Online payment integration coming next.</p>
+</div>{% endif %}</article>{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'billing/base.html' %}{% block title %}Account{% endblock %}{% block content %}
+<p class="eyebrow">YOUR DETAILS</p>
+<h1>Account</h1>
+<div class="split">
+<section class="card">
+<h2>Customer profile</h2>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button>Save changes</button>
+</form>
+</section>
+<aside class="card">
+<h2>Sign-in details</h2>
+<dl class="details">
+<dt>Username</dt>
+<dd>{{ user.username }}</dd>
+<dt>Email</dt>
+<dd>{{ user.email|default:'Not provided' }}</dd>
+</dl>
+</aside>
+</div>{% endblock %}

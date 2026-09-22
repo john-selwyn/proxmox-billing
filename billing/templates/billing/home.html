@@ -1,23 +1,30 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>VPS Billing</title>
-</head>
-<body>
-
-<h1>VPS Hosting</h1>
-
-<p>Deploy your own virtual private server.</p>
-
-{% if user.is_authenticated %}
-    <p>Welcome, {{ user.username }}!</p>
-
-    <a href="{% url 'plans' %}">View VPS Plans</a>
-{% else %}
-    <a href="{% url 'register' %}">Create Account</a>
-    |
-    <a href="{% url 'login' %}">Login</a>
-{% endif %}
-
-</body>
-</html>
+{% extends 'billing/base.html' %}{% block title %}Welcome{% endblock %}{% block content %}
+<section class="hero">
+<div>
+<p class="eyebrow">YOUR HOSTING, ORGANIZED</p>
+<h1>A clear view of your VPS billing.</h1>
+<p class="lead">Choose your resources, review your order, and keep your invoices in one place.</p>
+<div class="actions">{% if user.is_authenticated %}<a class="button" href="{% url 'dashboard' %}">Go to dashboard &rarr;</a>
+<a href="{% url 'plans' %}">Explore plans</a>{% else %}<a class="button" href="{% url 'register' %}">Create your account &rarr;</a>
+<a href="{% url 'login' %}">Sign in</a>{% endif %}</div>
+</div>
+<aside class="card hero-card">
+<p class="eyebrow">SIMPLE FROM THE START</p>
+<h2>Your next VPS starts here.</h2>
+<ol class="steps">
+<li>
+<strong>Choose a plan</strong>
+<span>Find the resources and billing cycle that fit.</span>
+</li>
+<li>
+<strong>Review your order</strong>
+<span>See the full amount before you confirm.</span>
+</li>
+<li>
+<strong>Keep track</strong>
+<span>View your order and pending invoice anytime.</span>
+</li>
+</ol>
+<p class="notice">Online payment integration coming next.</p>
+</aside>
+</section>{% endblock %}

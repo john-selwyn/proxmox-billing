@@ -1,0 +1,34 @@
+{% if orders %}
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Order / plan</th>
+<th>Cycle</th>
+<th>Amount (PHP)</th>
+<th>Status</th>
+<th>Created</th>
+<th>Invoice</th>
+</tr>
+</thead>
+<tbody>{% for order in orders %}<tr>
+<td>
+<a href="{% url 'order_detail' order.pk %}">#{{ order.pk }}</a>
+<br>
+<strong>{{ order.plan.name }}</strong>
+</td>
+<td>{{ order.get_billing_cycle_display }}</td>
+<td>{{ order.amount }}</td>
+<td>
+<span class="badge {{ order.status|lower }}">{{ order.get_status_display }}</span>
+</td>
+<td>{{ order.created_at|date:'M j, Y' }}</td>
+<td>{% if order.invoice %}<a href="{% url 'invoice' order.pk %}">{{ order.invoice.invoice_number }}</a>{% else %}<span class="muted">Not issued</span>{% endif %}</td>
+</tr>{% endfor %}</tbody>
+</table>
+</div>{% else %}
+<div class="empty">
+<h2>No orders yet.</h2>
+<p>Choose a VPS plan to create your first order.</p>
+<a href="{% url 'plans' %}">Explore plans &rarr;</a>
+</div>{% endif %}

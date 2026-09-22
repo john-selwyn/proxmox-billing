@@ -1,0 +1,33 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Customer portal{% endblock %} | VPS Billing</title>
+<link rel="stylesheet" href="{% static 'billing/portal.css' %}">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header>
+<div class="nav-wrap">
+<a class="brand" href="{% url 'home' %}">
+<span class="brand-icon">V</span> VPS Billing</a>
+<nav aria-label="Main navigation">
+{% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Dashboard</a>
+<a href="{% url 'plans' %}">VPS Plans</a>
+<a href="{% url 'orders' %}">Orders</a>
+<a href="{% url 'invoices' %}">Invoices</a>
+<a href="{% url 'account' %}">Account</a>
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-button">Logout</button>
+</form>
+{% else %}<a href="{% url 'login' %}">Login</a>
+<a class="button small" href="{% url 'register' %}">Create account</a>{% endif %}
+</nav>
+</div>
+</header>
+<main id="main" class="container">{% for message in messages %}
+<div class="notice" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main>
+<footer class="container">VPS Billing <span>Customer &amp; billing portal</span>
+</footer>
+</body>
+</html>

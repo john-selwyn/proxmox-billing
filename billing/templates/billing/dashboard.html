@@ -1,0 +1,29 @@
+{% extends 'billing/base.html' %}{% block title %}Dashboard{% endblock %}{% block content %}
+<div class="page-heading">
+<div>
+<p class="eyebrow">OVERVIEW</p>
+<h1>Welcome, {{ customer.full_name }}.</h1>
+<p class="muted">Your services and billing at a glance.</p>
+</div>
+<a class="button" href="{% url 'plans' %}">Browse VPS plans &rarr;</a>
+</div>
+<div class="grid stats">
+<div class="card">
+<span>Total orders</span>
+<strong>{{ order_count }}</strong>
+</div>
+<div class="card">
+<span>Active subscriptions</span>
+<strong>{{ active_count }}</strong>
+</div>
+<div class="card">
+<span>Pending invoices</span>
+<strong>{{ pending_count }}</strong>
+<a href="{% url 'invoices' %}">View invoices &rarr;</a>
+</div>
+</div>
+<section class="card">
+<div class="page-heading">
+<h2>Recent orders</h2>
+<a href="{% url 'orders' %}">View all orders &rarr;</a>
+</div>{% include 'billing/order_table.html' %}</section>{% endblock %}

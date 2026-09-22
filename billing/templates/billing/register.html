@@ -1,21 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Create Account</title>
-</head>
-<body>
-
-<h1>Create VPS Account</h1>
-
-<form method="post">
-    {% csrf_token %}
-
-    {{ form.as_p }}
-
-    <button type="submit">Create Account</button>
+{% extends 'billing/base.html' %}{% block title %}Create account{% endblock %}{% block content %}
+<section class="card auth">
+<p class="eyebrow">WELCOME ABOARD</p>
+<h1>Create your account</h1>
+<p class="muted">Manage your VPS orders and billing in one place.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<button>Create account</button>
 </form>
-
-<a href="{% url 'home' %}">Back</a>
-
-</body>
-</html>
+<p>Already registered? <a href="{% url 'login' %}">Sign in</a>
+</p>
+</section>{% endblock %}

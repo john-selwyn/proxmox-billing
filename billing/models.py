@@ -47,6 +47,8 @@ class Customer(models.Model):
 
 class Order(models.Model):
 
+    checkout_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
         PAID = "PAID", "Paid"

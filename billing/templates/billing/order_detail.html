@@ -1,0 +1,16 @@
+{% extends 'billing/base.html' %}{% block title %}Order #{{ order.pk }}{% endblock %}{% block content %}<a href="{% url 'orders' %}">&larr; My orders</a>
+<section class="card narrow">
+<p class="eyebrow">ORDER DETAILS</p>
+<h1>Order #{{ order.pk }}</h1>
+<span class="badge {{ order.status|lower }}">{{ order.get_status_display }}</span>
+<dl class="details">
+<dt>Plan</dt>
+<dd>{{ order.plan.name }}</dd>
+<dt>Billing cycle</dt>
+<dd>{{ order.get_billing_cycle_display }}</dd>
+<dt>Amount (PHP)</dt>
+<dd>{{ order.amount }}</dd>
+<dt>Created</dt>
+<dd>{{ order.created_at|date:'M j, Y H:i T' }}</dd>
+</dl>{% if order.invoice %}<a class="button" href="{% url 'invoice' order.pk %}">View invoice</a>{% else %}
+<p class="notice">An invoice has not been issued for this order.</p>{% endif %}</section>{% endblock %}

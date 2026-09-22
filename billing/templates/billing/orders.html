@@ -1,0 +1,5 @@
+{% extends 'billing/base.html' %}{% block title %}My orders{% endblock %}{% block content %}
+<p class="eyebrow">YOUR PURCHASES</p>
+<h1>My orders</h1>
+<p class="muted">Track your plans, billing cycles, and order status.</p>
+<section class="card">{% include 'billing/order_table.html' with orders=page_obj %}{% include 'billing/pagination.html' %}</section>{% endblock %}

@@ -1,23 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login</title>
-</head>
-<body>
-
-<h1>Login</h1>
-
-<form method="post">
-    {% csrf_token %}
-
-    {{ form.as_p }}
-
-    <button type="submit">Login</button>
+{% extends 'billing/base.html' %}{% block title %}Login{% endblock %}{% block content %}
+<section class="card auth">
+<p class="eyebrow">CUSTOMER PORTAL</p>
+<h1>Welcome back.</h1>
+<p class="muted">Sign in to manage your orders and invoices.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}<button>Sign in</button>
 </form>
-
-<a href="{% url 'register' %}">
-    Create an account
-</a>
-
-</body>
-</html>
+<p>New here? <a href="{% url 'register' %}">Create an account</a>
+</p>
+</section>{% endblock %}

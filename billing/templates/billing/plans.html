@@ -1,43 +1,25 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>VPS Plans</title>
-</head>
-<body>
-
-<h1>Choose Your VPS</h1>
-
-<p>Welcome, {{ user.username }}.</p>
-
-{% for plan in plans %}
-
-    <div>
-        <h2>{{ plan.name }}</h2>
-
-        <p>{{ plan.description }}</p>
-
-        <ul>
-            <li>{{ plan.cpu }} vCPU</li>
-            <li>{{ plan.ram }} GB RAM</li>
-            <li>{{ plan.storage }} GB Storage</li>
-        </ul>
-
-        <p>
-            ₱{{ plan.monthly_price }} / month
-        </p>
-
-        <a href="{% url 'select_plan' plan.id %}">
-            Select Plan
-        </a>
-    </div>
-
-    <hr>
-
-{% empty %}
-
-    <p>No VPS plans are currently available.</p>
-
-{% endfor %}
-
-</body>
-</html>
+{% extends 'billing/base.html' %}{% block title %}VPS plans{% endblock %}{% block content %}
+<p class="eyebrow">FIND YOUR FIT</p>
+<h1>Resources for your next project.</h1>
+<p class="lead">Choose a VPS plan, then select monthly or yearly billing. All prices in PHP.</p>
+<div class="grid plans">{% for plan in plans %}
+<article class="card plan">
+<h2>{{ plan.name }}</h2>
+<p class="muted">{{ plan.description }}</p>
+<p class="price">&#8369;{{ plan.monthly_price }}<small> / month</small>
+</p>
+<p class="muted">&#8369;{{ plan.yearly_price }} / year</p>
+<ul class="resources">
+<li>
+<strong>{{ plan.cpu }}</strong> vCPU</li>
+<li>
+<strong>{{ plan.ram }} GB</strong> RAM</li>
+<li>
+<strong>{{ plan.storage }} GB</strong> storage</li>
+</ul>
+<a class="button" href="{% url 'select_plan' plan.pk %}">Select plan &rarr;</a>
+</article>{% empty %}
+<div class="card empty">
+<h2>New plans are on the way.</h2>
+<p>No VPS plans are currently available. Please check back later.</p>
+</div>{% endfor %}</div>{% endblock %}
