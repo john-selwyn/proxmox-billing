@@ -90,3 +90,22 @@ class SubscriptionAdmin(admin.ModelAdmin):
         "status",
     )
     list_filter = ("status",)
+
+# Checkout bookkeeping is read-only; recovery uses the authenticated provider API.
+from .models import XenditCheckout
+
+
+@admin.register(XenditCheckout)
+class XenditCheckoutAdmin(admin.ModelAdmin):
+    list_display = ('reference_id', 'order', 'status', 'amount', 'error_code', 'updated_at')
+    list_filter = ('status',)
+    readonly_fields = tuple(field.name for field in XenditCheckout._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

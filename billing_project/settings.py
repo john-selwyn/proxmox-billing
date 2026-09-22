@@ -149,6 +149,11 @@ BILLING_API_SECRET = os.getenv("BILLING_API_SECRET", "")
 # Must match an OS identifier accepted by the existing provisioner.
 PROVISIONING_DEFAULT_OS = os.getenv("PROVISIONING_DEFAULT_OS", "Ubuntu 26.04")
 
+XENDIT_SECRET_API_KEY = os.getenv("XENDIT_SECRET_API_KEY", "")
+XENDIT_WEBHOOK_TOKEN = os.getenv("XENDIT_WEBHOOK_TOKEN", "")
+XENDIT_BUSINESS_ID = os.getenv("XENDIT_BUSINESS_ID", "")
+XENDIT_PUBLIC_BASE_URL = os.getenv("XENDIT_PUBLIC_BASE_URL", "")
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

@@ -1,8 +1,12 @@
 from django.urls import path
 
-from . import views
+from . import payment_views, views
 
 urlpatterns = [
+    path("orders/<int:order_id>/pay/", payment_views.pay_now, name="pay_now"),
+    path("payments/xendit/<int:order_id>/return/", payment_views.payment_return, name="xendit_return"),
+    path("payments/xendit/<int:order_id>/cancel/", payment_views.payment_return, name="xendit_cancel"),
+    path("payments/xendit/webhook/", payment_views.webhook, name="xendit_webhook"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("account/", views.account, name="account"),
     path("orders/", views.orders, name="orders"),

@@ -13,7 +13,7 @@
 <dt>Total (PHP)</dt>
 <dd class="total">{{ amount }}</dd>
 </dl>
-<p class="notice">Your order will be pending payment. Online payment integration coming next.</p>
+<p class="notice">Your order will be pending payment. Continue to your invoice to view available payment options.</p>
 <form method="post" action="{% url 'order_confirm' %}">{% csrf_token %}<input type="hidden" name="checkout_token" value="{{ checkout_token }}">
 <button>Confirm order &amp; create invoice</button>
 </form>

@@ -8,6 +8,7 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from .xendit import configured as xendit_configured
 from .forms import AccountForm, BillingCycleForm, RegistrationForm
 from .models import Customer, Invoice, Order, Subscription, VPSPlan
 from .services import confirm_order, plan_amount
@@ -120,7 +121,7 @@ def orders(request):
 @require_GET
 def order_detail(request, order_id):
     order = get_object_or_404(Order.objects.select_related('plan', 'invoice'), pk=order_id, customer__user=request.user)
-    return render(request, 'billing/order_detail.html', {'order': order})
+    return render(request, 'billing/order_detail.html', {'order': order, **payment_context(order)})
 
 
 @login_required
@@ -135,7 +136,7 @@ def invoices(request):
 def invoice(request, order_id):
     record = get_object_or_404(Invoice.objects.select_related('order__plan', 'order__customer'),
                               order_id=order_id, order__customer__user=request.user)
-    return render(request, 'billing/invoice.html', {'invoice': record, 'order': record.order})
+    return render(request, 'billing/invoice.html', {'invoice': record, 'order': record.order, **payment_context(record.order)})
 
 
 @login_required
@@ -147,3 +148,8 @@ def account(request):
         messages.success(request, 'Your account details have been updated.')
         return redirect('account')
     return render(request, 'billing/account.html', {'form': form})
+
+
+def payment_context(order):
+    return {'xendit_enabled': xendit_configured(),
+            'checkout': order.checkouts.order_by('-created_at', '-pk').first()}

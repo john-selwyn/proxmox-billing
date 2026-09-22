@@ -2,7 +2,9 @@
 
 This Django application manages customers, orders, invoices, and billing-side
 provisioning integration with the existing VM100 API. VM100 alone owns Proxmox.
-There is no payment gateway or public payment-confirmation endpoint yet.
+Xendit Payment Sessions handle initial one-time customer payments. Payment is
+confirmed only by an authenticated webhook plus independent provider verification;
+browser return URLs never mark orders paid. Recurring renewal billing is not implemented.
 
 ## Local development (PowerShell)
 
@@ -104,8 +106,9 @@ pages show only payment/provisioning state and a support reference.
 
 ## Payment boundary and lifecycle
 
-A future real gateway adapter must verify the server-side webhook signature,
-settled payment, PHP currency, amount, and order mapping **before** calling:
+The Xendit adapter authenticates the callback token and independently verifies
+both session and successful payment, PHP currency, amount, business and reference
+mapping **before** calling:
 
 ```python
 from billing.payments import record_verified_payment
@@ -117,8 +120,8 @@ record_verified_payment(
 )
 ```
 
-This is an internal trusted-code interface, not webhook verification itself.
-Nothing in a browser request can invoke it. The function compares the amount to
+This is an internal trusted-code interface. The Xendit webhook is its real-payment
+caller after verification; customer checkout/return views cannot invoke it. The function compares the amount to
 both order and invoice and rejects reused transaction IDs or an additional
 successful payment on an already-paid invoice.
 
@@ -241,37 +244,179 @@ instance and with a disposable plan/order. No SSH or Proxmox steps are needed.
 
 ## Validation and limits
 
-Latest local validation: **63 tests passed**; `manage.py check` reported no
+Latest local validation: **100 tests passed**; `manage.py check` reported no
 issues; `makemigrations --check --dry-run` reported no changes; `git diff --check`
-passed. Migration `0003_order_provisioning_tracking` was applied to the local
+passed. Migration `0004_xendit_checkout` was created and applied to the local
 SQLite database only. No files were committed or pushed.
 
 Automated tests mock all VM100 HTTP calls and also block the real Requests
 transport in the integration suite. They use a temporary SQLite database.
-The implementation does not contact VM100, VM200, production PostgreSQL or
-Proxmox; no VPS was created. PostgreSQL concurrency still needs staging validation.
-A real payment gateway and its verified webhook adapter remain future work.
+Implementation and tests made no live Xendit or provisioning API calls and did not
+contact VM100, VM200, production PostgreSQL or Proxmox; no VPS was created. PostgreSQL concurrency still needs staging validation.
+Recurring renewal payments and PostgreSQL concurrency validation remain future work.
 Production HTTPS/cookies, host configuration, static serving, authentication rate
 limiting, and an operator-run polling/recovery schedule remain deployment tasks.
 
-## Files changed for provisioning integration
+## Xendit initial one-time payments
+
+Configure all four variables in the untracked environment (never request or share
+real credentials in task messages). Empty values disable the gateway:
+
+```dotenv
+XENDIT_SECRET_API_KEY=
+XENDIT_WEBHOOK_TOKEN=
+XENDIT_BUSINESS_ID=
+XENDIT_PUBLIC_BASE_URL=
+```
+
+- `XENDIT_SECRET_API_KEY`: your Xendit secret key for the intended test/live mode.
+- `XENDIT_WEBHOOK_TOKEN`: callback verification token configured in Xendit.
+- `XENDIT_BUSINESS_ID`: the exact business owning the session and payment.
+- `XENDIT_PUBLIC_BASE_URL`: public HTTPS origin of the billing application,
+  e.g. `https://billing.example.com`, without a path, query or credentials.
+
+A partial configuration or non-HTTPS public origin fails `manage.py check` and
+is refused at runtime. `PROVISIONING_ALLOW_HTTP` never weakens Xendit's HTTPS
+requirement. `ALLOW_TEST_PAYMENT` remains False by default and is unnecessary for
+real Xendit payments. Existing VM100 provisioning environment variables remain
+required for creating a VPS after verified payment. No new dependencies are needed;
+the integration uses the existing Requests dependency.
+
+### Customer and provider flow
+
+Invoice and order pages offer a CSRF-protected POST to
+`/orders/<order_id>/pay/` only for the owning customer. The amount is loaded from
+both the order and invoice. Session creation saves a separate XenditCheckout;
+it does not create a SUCCESS Payment or alter invoice/order payment status.
+
+Sessions use PAY, PAYMENT_LINK, PHP, PH, AUTOMATIC capture, and
+`allow_save_payment_method=DISABLED`. No customer/card/wallet details or payment
+tokens are stored. The optional customer object is omitted for this PAY/DISABLED
+flow so the hosted checkout can collect any channel-required data; no fake names
+or duplicate customer records are generated.
+
+An existing ACTIVE checkout is retrieved from Xendit before being reused.
+Authoritatively expired/canceled sessions allow a new attempt. A session reported
+COMPLETED by this checkout path waits for the webhook; only the webhook can call
+`record_verified_payment` after both provider records have been verified.
+
+The success and cancel routes are owner-protected read-only pages:
+
+- `/payments/xendit/<order_id>/return/`
+- `/payments/xendit/<order_id>/cancel/`
+
+They display pending verification or the already-recorded paid state. Query
+parameters cannot change payment state. Customers are redirected only to HTTPS
+checkout hosts documented by Xendit: `checkout.xendit.co`,
+`checkout-staging.xendit.co`, `xen.to`, and `dev.xen.to`.
+
+Configure the Payment Session webhook destination in Xendit as:
+
+```text
+https://YOUR-BILLING-HOST/payments/xendit/webhook/
+```
+
+This POST-only endpoint is the sole new CSRF exemption. It validates
+`x-callback-token` with constant-time comparison before parsing JSON. It accepts
+`payment_session.completed` and `payment_session.expired`. The latter only expires
+the matching checkout. Completed events require exact locally stored reference
+and session IDs, then server-side GETs to `/sessions/{id}` and
+`/v3/payments/{id}`. The session must be COMPLETED/PAY/PHP/PH with the configured
+business, reference, IDs, amount and payment ID; the payment must be
+SUCCEEDED/PHP with the same reference/business/payment ID and exact request_amount.
+Both amounts must match the checkout, order and invoice using Decimal comparisons.
+
+Only then is `record_verified_payment` called inside a short database transaction.
+Its original order/invoice locking and payment transaction-ID uniqueness remain
+in force. Payment and completed-checkout bookkeeping commit together; existing
+provisioning dispatch runs after commit. Duplicate completed deliveries return 200
+without another payment or provisioning request. A transaction ID cannot be reused
+for another order. An out-of-order expiry cannot undo a processed completion.
+
+Missing/invalid tokens return 401, invalid JSON/verification mismatches return
+400, and provider/network/malformed API response failures return retryable 503.
+Authenticated unhandled events return 200. Raw webhook/provider payloads are not
+saved. Checkout admin is read-only and exposes only bookkeeping plus safe error
+codes, not credentials. Customer pages use generic messages.
+
+### Retry and recovery limitations
+
+The database permits only one open checkout per order. No database transaction
+spans HTTP. If session creation times out or returns an unusable response, the
+checkout remains UNKNOWN and further Pay Now requests do not blindly create new
+sessions. A process crash can similarly leave CREATING. This avoids accidentally
+collecting a second payment when the first session may already exist.
+
+An operator must locate the session associated with the exact reference in
+Xendit's dashboard, then reconcile using server-to-server verification:
+
+```powershell
+.\venv\Scripts\python.exe manage.py reconcile_xendit_checkout REFERENCE_ID PAYMENT_SESSION_ID
+```
+
+This never marks an invoice paid. If the session is completed, ask Xendit to
+redeliver the completed webhook after reconciliation. If no remote session exists,
+leave the attempt blocked until an operator confirms that outcome with Xendit;
+there is intentionally no automatic abandon/recreate action. Session creation
+idempotency headers are not assumed without a documented contract.
+
+If two different historical sessions eventually settle for the same order, the
+second successful payment is rejected by the existing single-payment guard;
+manual Xendit reconciliation/refund is required. This integration does not issue
+refunds, recurring charges or automatic renewals. Payment success can coexist
+with failed provisioning; recover provisioning through the existing commands,
+not by collecting payment again.
+
+### API contract and sandbox checklist
+
+Based on the current official documentation:
+
+- [Create session](https://docs.xendit.co/apidocs/create-session) and
+  [retrieve session](https://docs.xendit.co/apidocs/get-session): top-level session
+  objects with payment_session_id, reference_id and business_id.
+- [Retrieve payment](https://docs.xendit.co/apidocs/get-payment):
+  `api-version: 2024-11-11`, SUCCEEDED status and request_amount.
+- [Session webhooks](https://docs.xendit.co/apidocs/webhook-notification-sent-defined-webhook-url-updates-payment-session):
+  event/business_id envelope and nested data containing reference/session IDs.
+
+The adapter intentionally requires the payment reference to equal the local
+session reference, as requested. Confirm that relationship and the configured
+business ID in Xendit sandbox before enabling live checkout. Changed/missing
+fields fail closed; adjust the isolated adapter if Xendit changes its contract.
+HTTP Basic authentication uses `(secret_key, "")`, fixed `https://api.xendit.co`,
+TLS verification, disabled redirects/proxies/netrc, and 5/20-second connect/read
+timeouts. No live provider calls were made during development.
+
+For a later operator-run sandbox test: configure the four test-mode variables and
+public HTTPS webhook URL, run migrations, create a local customer order, and use
+Pay Now. Use Xendit's sandbox checkout and confirm that returning alone leaves the
+invoice unpaid until the verified webhook arrives. Then confirm one successful
+Payment, one paid invoice and the expected provisioning state. Configure VM100
+only if this intentional test should actually create a VPS. Keep
+ALLOW_TEST_PAYMENT=False throughout the Xendit test.
+
+## Files changed for Xendit integration
 
 - `.env.example`
-- `requirements.txt`
 - `README.md`
 - `billing_project/settings.py`
 - `billing/admin.py`
+- `billing/apps.py`
 - `billing/models.py`
-- `billing/services.py` (module description only)
-- `billing/payments.py` (new)
-- `billing/provisioning.py` (new)
-- `billing/provisioning_api.py` (new)
-- `billing/test_provisioning.py` (new)
-- `billing/migrations/0003_order_provisioning_tracking.py` (new)
-- `billing/management/__init__.py` (new)
-- `billing/management/commands/__init__.py` (new)
-- `billing/management/commands/confirm_test_payment.py` (new)
-- `billing/management/commands/sync_provisioning.py` (new)
+- `billing/payments.py` (description only; payment logic unchanged)
+- `billing/urls.py`
+- `billing/views.py`
+- `billing/tests.py` (updated unavailable-payment copy assertion)
+- `billing/checks.py` (new)
+- `billing/checkouts.py` (new)
+- `billing/xendit.py` (new)
+- `billing/payment_views.py` (new)
+- `billing/test_xendit.py` (new)
+- `billing/migrations/0004_xendit_checkout.py` (new)
+- `billing/management/commands/reconcile_xendit_checkout.py` (new)
+- `billing/templates/billing/home.html`
+- `billing/templates/billing/review_order.html`
 - `billing/templates/billing/order_detail.html`
 - `billing/templates/billing/invoice.html`
-- `billing/templates/billing/provisioning_status.html` (new)
+- `billing/templates/billing/pay_button.html` (new)
+- `billing/templates/billing/payment_return.html` (new)

@@ -1,0 +1,17 @@
+{% extends 'billing/base.html' %}
+{% block title %}Payment status{% endblock %}
+{% block content %}
+<section class="card narrow">
+  <h1>Payment status</h1>
+  {% if order.invoice.status == 'PAID' %}
+    <p>Payment confirmed.</p>
+    {% include 'billing/provisioning_status.html' %}
+  {% elif payment_unavailable %}
+    <p>We could not open your payment checkout right now. Please check your invoice again shortly or contact support with order #{{ order.pk }}.</p>
+  {% else %}
+    <p>Your payment is being verified. Returning from checkout does not confirm payment.</p>
+    <p>If you canceled checkout, your invoice remains unpaid. You can continue payment from your invoice.</p>
+  {% endif %}
+  <a class="button" href="{% url 'invoice' order.pk %}">View invoice</a>
+</section>
+{% endblock %}

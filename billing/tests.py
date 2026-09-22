@@ -223,7 +223,7 @@ class PortalTests(TestCase):
         self.checkout()
         order = Order.objects.get()
         self.assertEqual(self.client.get(reverse('order_detail', args=[order.pk])).status_code, 200)
-        self.assertContains(self.client.get(reverse('invoice', args=[order.pk])), 'Online payment integration coming next.')
+        self.assertContains(self.client.get(reverse('invoice', args=[order.pk])), 'Online payments are currently unavailable.')
 
     def test_missing_invoice_returns_404(self):
         order = Order.objects.create(customer=self.user.customer_profile, plan=self.plan,

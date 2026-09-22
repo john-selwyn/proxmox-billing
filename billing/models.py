@@ -149,6 +149,35 @@ class Invoice(models.Model):
         return self.invoice_number
 
 
+class XenditCheckout(models.Model):
+    class Status(models.TextChoices):
+        CREATING = "CREATING", "Creating checkout"
+        ACTIVE = "ACTIVE", "Awaiting payment"
+        UNKNOWN = "UNKNOWN", "Needs reconciliation"
+        VERIFYING = "VERIFYING", "Verifying payment"
+        COMPLETED = "COMPLETED", "Payment confirmed"
+        EXPIRED = "EXPIRED", "Expired"
+        CANCELED = "CANCELED", "Canceled"
+
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="checkouts")
+    provider = models.CharField(max_length=20, default="XENDIT", editable=False)
+    reference_id = models.CharField(max_length=100, unique=True, editable=False)
+    payment_session_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    payment_link_url = models.URLField(max_length=2048, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.CREATING)
+    verified_payment_id = models.CharField(max_length=100, blank=True)
+    error_code = models.CharField(max_length=40, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=["order"], condition=models.Q(status__in=["CREATING", "ACTIVE", "UNKNOWN", "VERIFYING"]),
+            name="one_open_xendit_checkout_per_order",
+        )]
+
+
 class Payment(models.Model):
 
     class Status(models.TextChoices):

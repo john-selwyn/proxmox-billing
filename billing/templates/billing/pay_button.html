@@ -1,0 +1,21 @@
+{% if order.status == 'PENDING' %}
+  {% if order.invoice.status == 'PENDING' or order.invoice.status == 'OVERDUE' %}
+    <div class="notice">
+      <strong>Pending payment</strong>
+      {% if xendit_enabled %}
+        {% if checkout.status == 'CREATING' or checkout.status == 'UNKNOWN' or checkout.status == 'VERIFYING' %}
+          <p>Your payment checkout is being checked. Please wait or contact support with order #{{ order.pk }}.</p>
+        {% else %}
+          <p>Pay securely through Xendit. Payment is confirmed after verification.</p>
+          <form method="post" action="{% url 'pay_now' order.pk %}">
+            {% csrf_token %}
+            <button type="submit">{% if checkout.status == 'ACTIVE' %}Continue Payment{% else %}Pay Now{% endif %}</button>
+          </form>
+          {% if checkout.status == 'ACTIVE' %}<p>Awaiting payment</p>{% endif %}
+        {% endif %}
+      {% else %}
+        <p>Online payments are currently unavailable.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endif %}

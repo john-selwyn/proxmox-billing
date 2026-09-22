@@ -1,6 +1,6 @@
 """Server-side payment recording. This module does NOT verify provider webhooks.
 
-A future provider adapter must authenticate its webhook, verify settlement,
+Provider adapters must authenticate their webhooks, verify settlement,
 amount/currency and order identity BEFORE calling record_verified_payment.
 There is intentionally no browser-accessible payment confirmation route.
 """
