@@ -59,6 +59,7 @@ Set these only in your untracked environment; never commit the real shared secre
 ```dotenv
 PROVISIONING_API_URL=
 PROVISIONING_ALLOW_HTTP=False
+ALLOW_TEST_PAYMENT=False
 BILLING_API_SECRET=
 PROVISIONING_DEFAULT_OS=Ubuntu 26.04
 ```
@@ -78,8 +79,9 @@ only `true` (case-insensitive, with surrounding whitespace ignored) enables it.
 Other values leave it disabled. Use this opt-in only for a temporary trusted
 internal LAN/testing network; production should use HTTPS and keep it False.
 Plain HTTP does not encrypt the bearer secret. This opt-in does not enable DEBUG,
-change database selection, bypass authentication, or enable test payments with
-`DEBUG=False`. All other API validation and TLS certificate checks are unchanged.
+change database selection, bypass authentication, or enable test payments.
+Test payments require the separate `ALLOW_TEST_PAYMENT` switch. All other API
+validation and TLS certificate checks are unchanged.
 Timeouts are network inactivity limits, not a total job-completion deadline.
 
 CPU, RAM (GB), storage (GB), plan name, cycle, and customer/order-derived VPS name
@@ -157,13 +159,23 @@ provisioning tracker (ongoing VPS monitoring is VM100's responsibility).
 
 ## TEST-ONLY payment
 
-The operator command below is the only simulated-payment entry point. There is
-no test-payment URL or customer button. Both the command and underlying service
-check DEBUG at runtime and refuse with DEBUG=False. Test payments are tagged
-`TEST_ONLY` with deterministic `test-order-<id>` transaction IDs. Those records
-are also excluded from provisioning eligibility when DEBUG=False, even if they
-were created earlier during development. Do not enable DEBUG on a production
-billing deployment just to test payment; DEBUG selects local SQLite here.
+`ALLOW_TEST_PAYMENT` is an operator-only staging/testing switch and should
+normally remain **False** (the default). Only `true`, case-insensitive with
+surrounding whitespace ignored, enables it; all other values disable it.
+It is independent of DEBUG: an operator can explicitly enable it on VM200 with
+`DEBUG=False`, without changing the database selection or enabling debug pages.
+Enabling it can create a **real VPS through VM100**. It must never be used as a
+real payment mechanism or as evidence that money was received.
+
+The management command remains the only simulated-payment entry point and still
+requires `--confirm`. There is no test-payment URL or customer button. Both the
+command and underlying payment service check ALLOW_TEST_PAYMENT at runtime.
+DEBUG=True alone does not permit test payments. Records are tagged `TEST_ONLY`
+with deterministic `test-order-<id>` transaction IDs. When ALLOW_TEST_PAYMENT is
+False, those payments cannot authorize provisioning or status synchronization,
+even if created while the switch was enabled. Normal verified payments are
+unaffected. Disable the switch again after completing the staging test; doing so
+does not delete test records or undo any VPS already created.
 
 ## First end-to-end test (manual, not executed during implementation)
 
@@ -172,7 +184,8 @@ to exercise your existing provisioner, from a separate development billing
 instance and with a disposable plan/order. No SSH or Proxmox steps are needed.
 
 1. In the development instance's untracked `.env`, set a local SECRET_KEY,
-   `DEBUG=True`, the VM100 origin in `PROVISIONING_API_URL`, the matching secret
+   `DEBUG=True` for local SQLite, `ALLOW_TEST_PAYMENT=True`, the VM100 origin
+   in `PROVISIONING_API_URL`, the matching secret
    in `BILLING_API_SECRET`, and `PROVISIONING_DEFAULT_OS=Ubuntu 26.04`. VM100's
    supplied address is `220.100.130.190`; use its actual reachable scheme/port
    and valid TLS hostname (or a trusted tunnel). Do not paste the secret into
@@ -195,7 +208,8 @@ instance and with a disposable plan/order. No SSH or Proxmox steps are needed.
    ID below. The command deliberately acknowledges that provisioning can occur:
 
    ```powershell
-   $env:DEBUG = 'True'
+   $env:DEBUG = 'True' # Local SQLite only; keep DEBUG=False on VM200.
+   $env:ALLOW_TEST_PAYMENT = 'True'
    .\venv\Scripts\python.exe manage.py confirm_test_payment ORDER_ID --confirm
    ```
 
@@ -218,13 +232,16 @@ instance and with a disposable plan/order. No SSH or Proxmox steps are needed.
    .\venv\Scripts\python.exe manage.py sync_provisioning ORDER_ID --retry
    ```
 
+   Keep ALLOW_TEST_PAYMENT=True in this testing environment until test-payment
+   provisioning/status checks are complete, then restore it to False.
+
    It sends the same order ID and frozen payload. A live request lease may defer
    the call for up to five minutes. Check the safe error category in Django admin
    or command output; consult VM100's own logs using the order ID for details.
 
 ## Validation and limits
 
-Latest local validation: **61 tests passed**; `manage.py check` reported no
+Latest local validation: **63 tests passed**; `manage.py check` reported no
 issues; `makemigrations --check --dry-run` reported no changes; `git diff --check`
 passed. Migration `0003_order_provisioning_tracking` was applied to the local
 SQLite database only. No files were committed or pushed.

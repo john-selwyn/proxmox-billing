@@ -18,7 +18,7 @@ from .provisioning import TEST_PROVIDER, request_vps_provisioning
 
 @transaction.atomic
 def record_verified_payment(*, order_id, provider, transaction_id, amount):
-    if provider == TEST_PROVIDER and not settings.DEBUG:
+    if provider == TEST_PROVIDER and not settings.ALLOW_TEST_PAYMENT:
         raise ValidationError('Test payment confirmation is disabled.')
     if not provider or len(provider) > 50 or not transaction_id or len(transaction_id) > 200:
         raise ValidationError('Valid provider and transaction identifiers are required.')
@@ -57,7 +57,7 @@ def record_verified_payment(*, order_id, provider, transaction_id, amount):
 
 def confirm_test_payment(order_id):
     """TEST ONLY. Operator command; guard is checked even for direct Python calls."""
-    if not settings.DEBUG:
+    if not settings.ALLOW_TEST_PAYMENT:
         raise ValidationError('Test payment confirmation is disabled.')
     order = Order.objects.get(pk=order_id)
     return record_verified_payment(order_id=order.pk, provider=TEST_PROVIDER,

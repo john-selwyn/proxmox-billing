@@ -23,7 +23,7 @@ def require_paid(order):
                                      amount=order.amount, paid_at__isnull=False).first()
     payments = Payment.objects.filter(invoice=invoice, status=Payment.Status.SUCCESS,
                                       amount=order.amount, paid_at__isnull=False)
-    if not settings.DEBUG:
+    if not settings.ALLOW_TEST_PAYMENT:
         payments = payments.exclude(provider=TEST_PROVIDER)
     if not invoice or not payments.exists() or order.status in (Order.Status.PENDING, Order.Status.CANCELLED):
         raise ValidationError('A verified server-side payment is required.')

@@ -6,15 +6,15 @@ from billing.payments import confirm_test_payment
 
 
 class Command(BaseCommand):
-    help = 'TEST ONLY: record simulated payment and dispatch provisioning. Requires DEBUG=True.'
+    help = 'TEST ONLY: record simulated payment and dispatch provisioning. Requires ALLOW_TEST_PAYMENT=True.'
 
     def add_arguments(self, parser):
         parser.add_argument('order_id', type=int)
         parser.add_argument('--confirm', action='store_true', help='Acknowledge this can request a real VPS.')
 
     def handle(self, *args, **options):
-        if not settings.DEBUG:
-            raise CommandError('Test payment confirmation is disabled when DEBUG=False.')
+        if not settings.ALLOW_TEST_PAYMENT:
+            raise CommandError('Test payment confirmation is disabled when ALLOW_TEST_PAYMENT=False.')
         if not options['confirm']:
             raise CommandError('TEST ONLY. This may create a real VPS. Pass --confirm to execute.')
         try:

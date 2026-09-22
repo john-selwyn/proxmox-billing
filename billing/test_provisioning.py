@@ -24,7 +24,7 @@ from .provisioning_api import ProvisioningResult
 from .services import confirm_order
 
 
-@override_settings(DEBUG=True, PROVISIONING_API_URL='https://provisioner.invalid',
+@override_settings(DEBUG=True, ALLOW_TEST_PAYMENT=False, PROVISIONING_API_URL='https://provisioner.invalid',
                    BILLING_API_SECRET='unit-test-secret-only', PROVISIONING_DEFAULT_OS='Ubuntu 26.04')
 class ProvisioningTests(TransactionTestCase):
     def setUp(self):
@@ -258,17 +258,22 @@ class ProvisioningTests(TransactionTestCase):
         get_vps_provisioning_status(self.order)
         self.assertEqual(self.http.call_count, 1)
 
+    @override_settings(DEBUG=False, ALLOW_TEST_PAYMENT=True)
     def test_test_payment_only_command_and_idempotence(self):
         out = StringIO()
         call_command('confirm_test_payment', self.order.pk, confirm=True, stdout=out)
         call_command('confirm_test_payment', self.order.pk, confirm=True, stdout=out)
         self.assertIn('TEST ONLY', out.getvalue())
         self.assertEqual(Payment.objects.get().provider, 'TEST_ONLY')
+        self.assertEqual(Payment.objects.get().status, 'SUCCESS')
+        self.assertEqual(Invoice.objects.get().status, 'PAID')
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, 'PROVISIONING')
         self.assertEqual(self.http.call_count, 1)
         self.assertEqual(self.client.post(f'/orders/{self.order.pk}/test-payment/').status_code, 404)
 
-    @override_settings(DEBUG=False)
-    def test_test_payment_unavailable_in_production(self):
+    @override_settings(DEBUG=False, ALLOW_TEST_PAYMENT=False)
+    def test_test_payment_unavailable_without_opt_in(self):
         with self.assertRaises(CommandError):
             call_command('confirm_test_payment', self.order.pk, confirm=True)
         with self.assertRaises(ValidationError):
@@ -278,15 +283,20 @@ class ProvisioningTests(TransactionTestCase):
         self.assertFalse(Payment.objects.exists())
         self.http.assert_not_called()
 
-    def test_old_test_payment_cannot_provision_in_production(self):
+    @override_settings(DEBUG=False, ALLOW_TEST_PAYMENT=True)
+    def test_old_test_payment_cannot_provision_without_opt_in(self):
         with patch('billing.payments.request_vps_provisioning'):
             confirm_test_payment(self.order.pk)
-        with override_settings(DEBUG=False), self.assertRaises(ValidationError):
-            request_vps_provisioning(self.order)
+        for debug in (False, True):
+            with override_settings(DEBUG=debug, ALLOW_TEST_PAYMENT=False):
+                for operation in (request_vps_provisioning, get_vps_provisioning_status):
+                    with self.assertRaises(ValidationError):
+                        operation(self.order)
         self.http.assert_not_called()
 
+    @override_settings(DEBUG=False, ALLOW_TEST_PAYMENT=True)
     def test_test_command_requires_explicit_confirmation(self):
-        with self.assertRaises(CommandError):
+        with self.assertRaisesMessage(CommandError, 'Pass --confirm'):
             call_command('confirm_test_payment', self.order.pk)
         self.assertFalse(Payment.objects.exists())
 
@@ -341,7 +351,7 @@ class ProvisioningTests(TransactionTestCase):
         self.assertEqual(self.order.status, 'PROVISIONING')
         self.assertEqual(self.order.provisioning_error, '')
 
-    @override_settings(DEBUG=True, PROVISIONING_API_URL='http://provisioner.invalid',
+    @override_settings(DEBUG=True, ALLOW_TEST_PAYMENT=False, PROVISIONING_API_URL='http://provisioner.invalid',
                        PROVISIONING_ALLOW_HTTP=False)
     def test_debug_still_allows_http(self):
         self.pay()
@@ -413,3 +423,29 @@ class ProvisioningTests(TransactionTestCase):
         self.client.get(reverse('invoice', args=[self.order.pk]) + '?payment=success')
         self.http.assert_not_called()
         self.assertFalse(Payment.objects.exists())
+
+
+    @override_settings(DEBUG=True, ALLOW_TEST_PAYMENT=False)
+    def test_debug_does_not_enable_test_payment(self):
+        with self.assertRaises(CommandError):
+            call_command('confirm_test_payment', self.order.pk, confirm=True)
+        with self.assertRaises(ValidationError):
+            confirm_test_payment(self.order.pk)
+        with self.assertRaises(ValidationError):
+            self.pay(provider='TEST_ONLY')
+        self.assertFalse(Payment.objects.exists())
+        self.http.assert_not_called()
+
+    @override_settings(DEBUG=False, ALLOW_TEST_PAYMENT=True)
+    def test_enabled_switch_does_not_expose_customer_http_payment(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.post(f'/orders/{self.order.pk}/test-payment/').status_code, 404)
+        self.assertEqual(self.client.post(reverse('order_detail', args=[self.order.pk]),
+            {'payment': 'success', 'provider': 'TEST_ONLY', 'confirm': True}).status_code, 405)
+        response = self.client.get(reverse('invoice', args=[self.order.pk]) + '?payment=success')
+        self.assertNotContains(response, 'confirm_test_payment')
+        self.assertNotContains(response, 'test-payment')
+        self.client.logout()
+        self.assertEqual(self.client.post(f'/orders/{self.order.pk}/test-payment/').status_code, 404)
+        self.assertFalse(Payment.objects.exists())
+        self.http.assert_not_called()

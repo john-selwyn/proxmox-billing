@@ -139,6 +139,9 @@ STATIC_URL = 'static/'
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "home"
 
+# Operator-only staging/testing switch; independent of DEBUG.
+ALLOW_TEST_PAYMENT = os.getenv("ALLOW_TEST_PAYMENT", "False").strip().lower() == "true"
+
 # Origin only (no /api path). No integration request is made at startup.
 PROVISIONING_API_URL = os.getenv("PROVISIONING_API_URL", "")
 PROVISIONING_ALLOW_HTTP = os.getenv("PROVISIONING_ALLOW_HTTP", "False").strip().lower() == "true"
