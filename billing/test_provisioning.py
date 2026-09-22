@@ -309,12 +309,45 @@ class ProvisioningTests(TransactionTestCase):
         self.assertEqual(self.order.provisioning_error, 'NOT_CONFIGURED')
         self.http.assert_not_called()
 
-    @override_settings(DEBUG=False, PROVISIONING_API_URL='http://provisioner.invalid')
+    @override_settings(DEBUG=False, PROVISIONING_API_URL='http://provisioner.invalid',
+                       PROVISIONING_ALLOW_HTTP=False)
     def test_production_requires_https(self):
         self.pay()
         self.order.refresh_from_db()
         self.assertEqual(self.order.provisioning_error, 'HTTPS_REQUIRED')
         self.http.assert_not_called()
+
+    @override_settings(DEBUG=False, PROVISIONING_API_URL='http://provisioner.invalid',
+                       PROVISIONING_ALLOW_HTTP=True)
+    def test_explicit_http_opt_in_without_debug(self):
+        self.pay()
+        self.http.assert_called_once()
+        self.assertEqual(self.http.call_args.args,
+                         ('POST', 'http://provisioner.invalid/api/internal/provision/'))
+        self.assertEqual(self.http.call_args.kwargs['headers']['Authorization'],
+                         'Bearer unit-test-secret-only')
+        self.assertFalse(self.http.call_args.kwargs['allow_redirects'])
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, 'PROVISIONING')
+        self.assertEqual(self.order.provisioning_error, '')
+
+    @override_settings(DEBUG=False, PROVISIONING_ALLOW_HTTP=False)
+    def test_https_without_debug_or_http_opt_in(self):
+        self.pay()
+        self.http.assert_called_once()
+        self.assertEqual(self.http.call_args.args,
+                         ('POST', 'https://provisioner.invalid/api/internal/provision/'))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, 'PROVISIONING')
+        self.assertEqual(self.order.provisioning_error, '')
+
+    @override_settings(DEBUG=True, PROVISIONING_API_URL='http://provisioner.invalid',
+                       PROVISIONING_ALLOW_HTTP=False)
+    def test_debug_still_allows_http(self):
+        self.pay()
+        self.http.assert_called_once()
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.provisioning_error, '')
 
     def test_calendar_billing_cycles(self):
         start = datetime(2028, 1, 31, tzinfo=dt_timezone.utc)

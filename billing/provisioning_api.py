@@ -68,7 +68,7 @@ def api_request(method, order_id, *, payload=None):
         valid = False
     if not valid or not secret or not secret.isascii() or any(ord(char) <= 32 or ord(char) == 127 for char in secret):
         raise ProvisioningAPIError('NOT_CONFIGURED')
-    if not settings.DEBUG and parsed.scheme != 'https':
+    if parsed.scheme != 'https' and not (settings.DEBUG or settings.PROVISIONING_ALLOW_HTTP):
         raise ProvisioningAPIError('HTTPS_REQUIRED')
     path = '/api/internal/provision/'
     if method == 'GET':

@@ -58,6 +58,7 @@ Set these only in your untracked environment; never commit the real shared secre
 
 ```dotenv
 PROVISIONING_API_URL=
+PROVISIONING_ALLOW_HTTP=False
 BILLING_API_SECRET=
 PROVISIONING_DEFAULT_OS=Ubuntu 26.04
 ```
@@ -71,8 +72,14 @@ PROVISIONING_DEFAULT_OS=Ubuntu 26.04
 The client sends bearer authentication and JSON, uses 5-second connection and
 20-second read timeouts, disables redirects, and retains TLS certificate checks.
 It ignores environment proxies/netrc to keep internal credentials on the intended
-connection. HTTPS is required with `DEBUG=False`. Development HTTP is accepted,
-but use a trusted local tunnel or HTTPS to avoid exposing the bearer secret.
+connection. HTTP is allowed only when `DEBUG=True` or the explicit environment
+setting `PROVISIONING_ALLOW_HTTP=True` is enabled. The setting defaults to False;
+only `true` (case-insensitive, with surrounding whitespace ignored) enables it.
+Other values leave it disabled. Use this opt-in only for a temporary trusted
+internal LAN/testing network; production should use HTTPS and keep it False.
+Plain HTTP does not encrypt the bearer secret. This opt-in does not enable DEBUG,
+change database selection, bypass authentication, or enable test payments with
+`DEBUG=False`. All other API validation and TLS certificate checks are unchanged.
 Timeouts are network inactivity limits, not a total job-completion deadline.
 
 CPU, RAM (GB), storage (GB), plan name, cycle, and customer/order-derived VPS name
@@ -217,7 +224,7 @@ instance and with a disposable plan/order. No SSH or Proxmox steps are needed.
 
 ## Validation and limits
 
-Latest local validation: **58 tests passed**; `manage.py check` reported no
+Latest local validation: **61 tests passed**; `manage.py check` reported no
 issues; `makemigrations --check --dry-run` reported no changes; `git diff --check`
 passed. Migration `0003_order_provisioning_tracking` was applied to the local
 SQLite database only. No files were committed or pushed.

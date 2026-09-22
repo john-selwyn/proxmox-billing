@@ -141,6 +141,7 @@ LOGOUT_REDIRECT_URL = "home"
 
 # Origin only (no /api path). No integration request is made at startup.
 PROVISIONING_API_URL = os.getenv("PROVISIONING_API_URL", "")
+PROVISIONING_ALLOW_HTTP = os.getenv("PROVISIONING_ALLOW_HTTP", "False").strip().lower() == "true"
 BILLING_API_SECRET = os.getenv("BILLING_API_SECRET", "")
 # Must match an OS identifier accepted by the existing provisioner.
 PROVISIONING_DEFAULT_OS = os.getenv("PROVISIONING_DEFAULT_OS", "Ubuntu 26.04")
