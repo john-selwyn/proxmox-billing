@@ -34,7 +34,7 @@
     {% if order.provisioning_ip_address %}
       <p class="muted">Connect to your VPS using SSH. Use the username configured by the server image.</p>
       <div class="connection-box">
-        <span>Public IP</span>
+        <span>IP address</span>
         <strong><code id="server-ip">{{ order.provisioning_ip_address }}</code></strong>
         <button class="copy-button" type="button" data-copy="{{ order.provisioning_ip_address }}">Copy IP</button>
       </div>
