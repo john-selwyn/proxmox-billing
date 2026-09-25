@@ -14,6 +14,7 @@ from .forms import AccountForm, BillingCycleForm, RegistrationForm
 from .models import Customer, Invoice, Order, Subscription, VPSPlan
 from .provisioning import get_vps_provisioning_status
 from .services import confirm_order, plan_amount
+from .vps_control import VPSControlError, get_vps_runtime, power_vps
 
 CHECKOUT_SALT = 'billing.order-review'
 
@@ -87,6 +88,73 @@ def vps_detail(request, order_id):
         invoice__status=Invoice.Status.PAID,
     )
     return render(request, 'billing/vps_detail.html', {'order': order})
+
+
+@login_required
+@require_GET
+def vps_runtime_status(request, order_id):
+    order = get_object_or_404(
+        Order.objects.select_related('invoice'),
+        pk=order_id,
+        customer__user=request.user,
+        invoice__status=Invoice.Status.PAID,
+    )
+    if order.status != Order.Status.ACTIVE:
+        return JsonResponse({
+            'available': False,
+            'state': order.status.lower(),
+            'vmid': order.provisioning_vmid,
+            'ip_address': order.provisioning_ip_address or '',
+        })
+
+    try:
+        runtime = get_vps_runtime(order.pk)
+    except VPSControlError:
+        return JsonResponse({
+            'available': False,
+            'state': 'unknown',
+            'vmid': order.provisioning_vmid,
+            'ip_address': order.provisioning_ip_address or '',
+            'error': True,
+        })
+
+    if runtime.ip_address and runtime.ip_address != order.provisioning_ip_address:
+        Order.objects.filter(pk=order.pk).update(provisioning_ip_address=runtime.ip_address)
+
+    return JsonResponse({
+        'available': True,
+        'state': runtime.state,
+        'vmid': runtime.vmid,
+        'ip_address': runtime.ip_address or order.provisioning_ip_address or '',
+    })
+
+
+@login_required
+@require_POST
+def vps_power(request, order_id, action):
+    order = get_object_or_404(
+        Order,
+        pk=order_id,
+        customer__user=request.user,
+        invoice__status=Invoice.Status.PAID,
+        status=Order.Status.ACTIVE,
+    )
+    if action not in {'start', 'shutdown', 'reboot'}:
+        return JsonResponse({'error': 'Invalid power action.'}, status=400)
+
+    try:
+        result = power_vps(order.pk, action)
+    except VPSControlError as exc:
+        if exc.code == 'HTTP_409':
+            messages.error(request, 'That power action is not available for the VPS current state.')
+        else:
+            messages.error(request, 'The VPS power command could not be sent right now.')
+    else:
+        if result.get('changed'):
+            messages.success(request, f'{action.title()} command sent to your VPS.')
+        else:
+            messages.success(request, f'Your VPS is already in the requested state.')
+    return redirect('vps_detail', order_id=order.pk)
 
 
 @login_required
