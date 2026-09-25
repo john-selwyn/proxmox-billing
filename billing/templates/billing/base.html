@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Customer portal{% endblock %} | VPS Billing</title>
+<title>{% block title %}Customer portal{% endblock %} | VPS Control Panel</title>
 <link rel="stylesheet" href="{% static 'billing/portal.css' %}">
 </head>
 <body>
@@ -11,9 +11,10 @@
 <header>
 <div class="nav-wrap">
 <a class="brand" href="{% url 'home' %}">
-<span class="brand-icon">V</span> VPS Billing</a>
+<span class="brand-icon">V</span> VPS Control Panel</a>
 <nav aria-label="Main navigation">
 {% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Dashboard</a>
+<a href="{% url 'my_vps' %}">My VPS</a>
 <a href="{% url 'plans' %}">VPS Plans</a>
 <a href="{% url 'orders' %}">Orders</a>
 <a href="{% url 'invoices' %}">Invoices</a>
@@ -27,7 +28,7 @@
 </header>
 <main id="main" class="container">{% for message in messages %}
 <div class="notice" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main>
-<footer class="container">VPS Billing <span>Customer &amp; billing portal</span>
+<footer class="container">VPS Control Panel <span>Servers, billing &amp; account management</span>
 </footer>
 </body>
 </html>
