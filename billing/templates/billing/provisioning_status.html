@@ -1,17 +1,106 @@
 {% if order.invoice.status == 'PAID' %}
-<div class="notice">
-  <strong>Payment confirmed</strong>
-  {% if order.status == 'ACTIVE' %}
-    <p>Your VPS is active.</p>
-  {% elif order.status == 'FAILED' %}
-    <p>VPS provisioning failed. Your payment remains recorded. Please contact support with order #{{ order.pk }}.</p>
-  {% elif order.status == 'PROVISIONING' %}
-    <p>Your VPS is provisioning. Status is updated by our billing service.</p>
-  {% elif order.status == 'PAID' %}
-    <p>Your order is waiting for provisioning.</p>
+<div class="notice provisioning-card"
+     id="provisioning-status"
+     data-status-url="{% url 'customer_provisioning_status' order.pk %}">
+  <div class="provisioning-heading">
+    <div>
+      <strong>Payment confirmed</strong>
+      <p id="provisioning-step">
+        {% if order.status == 'ACTIVE' %}
+          Your VPS is active.
+        {% elif order.status == 'FAILED' %}
+          VPS provisioning failed.
+        {% elif order.provisioning_step %}
+          {{ order.provisioning_step }}
+        {% elif order.status == 'PROVISIONING' %}
+          Preparing your VPS...
+        {% else %}
+          Waiting for provisioning...
+        {% endif %}
+      </p>
+    </div>
+    <strong class="provisioning-percent" id="provisioning-percent">
+      {% if order.status == 'ACTIVE' %}100{% else %}{{ order.provisioning_progress }}{% endif %}%
+    </strong>
+  </div>
+
+  {% if order.status != 'FAILED' %}
+  <div class="provisioning-track" aria-label="VPS provisioning progress">
+    <div class="provisioning-bar" id="provisioning-bar"
+         style="width:{% if order.status == 'ACTIVE' %}100{% else %}{{ order.provisioning_progress }}{% endif %}%"></div>
+  </div>
   {% endif %}
+
+  <div class="provisioning-meta">
+    <span>VMID: <strong id="provisioning-vmid">{{ order.provisioning_vmid|default:"Assigning..." }}</strong></span>
+    <span>IP: <strong id="provisioning-ip">{{ order.provisioning_ip_address|default:"Assigning..." }}</strong></span>
+  </div>
+
   {% if order.provisioning_error and order.status != 'FAILED' %}
-    <p>We could not confirm the latest provisioning status. Your payment is safe; support can check order #{{ order.pk }}.</p>
+    <p id="provisioning-warning">We could not confirm the latest provisioning status. Your payment is safe; status checks will continue.</p>
   {% endif %}
 </div>
+
+{% if order.status == 'PROVISIONING' or order.status == 'PAID' %}
+<script>
+(() => {
+  const root = document.getElementById("provisioning-status");
+  if (!root) return;
+
+  const step = document.getElementById("provisioning-step");
+  const percent = document.getElementById("provisioning-percent");
+  const bar = document.getElementById("provisioning-bar");
+  const vmid = document.getElementById("provisioning-vmid");
+  const ip = document.getElementById("provisioning-ip");
+  const url = root.dataset.statusUrl;
+  let stopped = false;
+
+  async function poll() {
+    if (stopped) return;
+    try {
+      const response = await fetch(url, {
+        cache: "no-store",
+        headers: {"X-Requested-With": "XMLHttpRequest"}
+      });
+      if (!response.ok) throw new Error("status unavailable");
+
+      const data = await response.json();
+      const value = Math.max(0, Math.min(100, Number(data.progress) || 0));
+      percent.textContent = value + "%";
+      if (bar) bar.style.width = value + "%";
+      step.textContent = data.step || (data.status === "ACTIVE" ? "Your VPS is active." : "Preparing your VPS...");
+      vmid.textContent = data.vmid || "Assigning...";
+      ip.textContent = data.ip_address || "Assigning...";
+
+      if (data.status === "ACTIVE") {
+        percent.textContent = "100%";
+        if (bar) {
+          bar.style.width = "100%";
+          bar.classList.add("complete");
+        }
+        step.textContent = data.ip_address ? "VPS ready. Connection details are available." : "VPS ready. Waiting for its IP address...";
+      }
+
+      if (data.status === "FAILED") {
+        stopped = true;
+        step.textContent = "VPS provisioning failed. Your payment remains recorded. Please contact support with order #{{ order.pk }}.";
+        root.classList.add("provisioning-failed");
+        return;
+      }
+
+      // Keep polling an ACTIVE VPS until its guest IP appears.
+      if (data.status === "ACTIVE" && data.ip_address) {
+        stopped = true;
+        return;
+      }
+    } catch (error) {
+      step.textContent = "Checking provisioning status...";
+    }
+    setTimeout(poll, 3000);
+  }
+
+  poll();
+})();
+</script>
+{% endif %}
 {% endif %}
