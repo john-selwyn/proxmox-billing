@@ -18,7 +18,10 @@
   <section class="card">
     <h2>Server overview</h2>
     <dl class="details">
-      <dt>Status</dt><dd>{{ order.get_status_display }}</dd>
+      <dt>Service status</dt><dd>{{ order.get_status_display }}</dd>
+      {% if order.status == 'ACTIVE' %}
+      <dt>Power state</dt><dd><span id="runtime-state" class="runtime-state checking">Checking...</span></dd>
+      {% endif %}
       <dt>IP address</dt>
       <dd>{% if order.provisioning_ip_address %}<code>{{ order.provisioning_ip_address }}</code>{% else %}<span class="muted">Assigning...</span>{% endif %}</dd>
       <dt>VMID</dt><dd>{{ order.provisioning_vmid|default:"Assigning..." }}</dd>
@@ -29,10 +32,32 @@
     </dl>
   </section>
 
+  {% if order.status == 'ACTIVE' %}
+  <section class="card">
+    <h2>Power controls</h2>
+    <p class="muted">Power commands are sent securely through the VPS control service.</p>
+    <div class="power-actions">
+      <form method="post" action="{% url 'vps_power' order.pk 'start' %}">
+        {% csrf_token %}
+        <button type="submit" class="power-button" data-power="start" disabled>Start</button>
+      </form>
+      <form method="post" action="{% url 'vps_power' order.pk 'shutdown' %}" data-confirm="Shut down this VPS gracefully?">
+        {% csrf_token %}
+        <button type="submit" class="power-button secondary-power" data-power="shutdown" disabled>Shutdown</button>
+      </form>
+      <form method="post" action="{% url 'vps_power' order.pk 'reboot' %}" data-confirm="Restart this VPS now?">
+        {% csrf_token %}
+        <button type="submit" class="power-button secondary-power" data-power="reboot" disabled>Reboot</button>
+      </form>
+    </div>
+    <p class="muted power-help" id="power-help">Checking the VPS power state...</p>
+  </section>
+  {% endif %}
+
   <section class="card">
     <h2>Remote access</h2>
     {% if order.provisioning_ip_address %}
-      <p class="muted">Connect to your VPS using SSH. Use the username configured by the server image.</p>
+      <p class="muted">Connect to your VPS using SSH while the server is running. Use the username configured by the server image.</p>
       <div class="connection-box">
         <span>IP address</span>
         <strong><code id="server-ip">{{ order.provisioning_ip_address }}</code></strong>
@@ -82,5 +107,61 @@ document.querySelectorAll("[data-copy]").forEach((button) => {
     }
   });
 });
+
+document.querySelectorAll("form[data-confirm]").forEach((form) => {
+  form.addEventListener("submit", (event) => {
+    if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+  });
+});
+
+{% if order.status == 'ACTIVE' %}
+(() => {
+  const stateEl = document.getElementById("runtime-state");
+  const helpEl = document.getElementById("power-help");
+  const buttons = {
+    start: document.querySelector('[data-power="start"]'),
+    shutdown: document.querySelector('[data-power="shutdown"]'),
+    reboot: document.querySelector('[data-power="reboot"]')
+  };
+  const statusUrl = "{% url 'vps_runtime_status' order.pk %}";
+
+  function setButtons(state) {
+    Object.values(buttons).forEach((button) => { if (button) button.disabled = true; });
+    if (state === "running") {
+      buttons.shutdown.disabled = false;
+      buttons.reboot.disabled = false;
+      helpEl.textContent = "The VPS is running. You can shut it down gracefully or reboot it.";
+    } else if (state === "stopped") {
+      buttons.start.disabled = false;
+      helpEl.textContent = "The VPS is stopped. Start it to restore remote access.";
+    } else {
+      helpEl.textContent = "Power controls are temporarily unavailable while the current state is being checked.";
+    }
+  }
+
+  async function refreshRuntime() {
+    try {
+      const response = await fetch(statusUrl, {
+        cache: "no-store",
+        headers: {"X-Requested-With": "XMLHttpRequest"}
+      });
+      if (!response.ok) throw new Error("status unavailable");
+      const data = await response.json();
+      const state = data.available ? data.state : "unknown";
+
+      stateEl.textContent = state === "unknown" ? "Unavailable" : state.charAt(0).toUpperCase() + state.slice(1);
+      stateEl.className = "runtime-state " + state;
+      setButtons(state);
+    } catch (error) {
+      stateEl.textContent = "Unavailable";
+      stateEl.className = "runtime-state unknown";
+      setButtons("unknown");
+    }
+    setTimeout(refreshRuntime, 4000);
+  }
+
+  refreshRuntime();
+})();
+{% endif %}
 </script>
 {% endblock %}
