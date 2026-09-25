@@ -1,0 +1,55 @@
+{% extends 'billing/base.html' %}
+{% block title %}My VPS{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">SERVERS</p>
+    <h1>My VPS</h1>
+    <p class="muted">View and manage your virtual servers from one place.</p>
+  </div>
+  <a class="button" href="{% url 'plans' %}">Create another VPS &rarr;</a>
+</div>
+
+{% if services %}
+<div class="server-grid">
+  {% for order in services %}
+  <article class="card server-card">
+    <div class="server-card-head">
+      <div>
+        <p class="eyebrow">VPS #{{ order.provisioning_vmid|default:order.pk }}</p>
+        <h2>{{ order.plan.name }}</h2>
+      </div>
+      <span class="badge {{ order.status|lower }}">{{ order.get_status_display }}</span>
+    </div>
+
+    {% if order.status == 'PROVISIONING' %}
+    <div class="server-progress">
+      <div class="provisioning-track">
+        <div class="provisioning-bar" style="width:{{ order.provisioning_progress }}%"></div>
+      </div>
+      <small>{{ order.provisioning_progress }}% &mdash; {{ order.provisioning_step|default:"Preparing VPS..." }}</small>
+    </div>
+    {% endif %}
+
+    <dl class="server-facts">
+      <div><dt>IP address</dt><dd>{% if order.provisioning_ip_address %}<code>{{ order.provisioning_ip_address }}</code>{% else %}<span class="muted">Assigning...</span>{% endif %}</dd></div>
+      <div><dt>vCPU</dt><dd>{{ order.plan.cpu }}</dd></div>
+      <div><dt>RAM</dt><dd>{{ order.plan.ram }} GB</dd></div>
+      <div><dt>Storage</dt><dd>{{ order.plan.storage }} GB</dd></div>
+    </dl>
+
+    <div class="server-card-actions">
+      <a class="button small" href="{% url 'vps_detail' order.pk %}">Manage VPS</a>
+      <a href="{% url 'order_detail' order.pk %}">Order #{{ order.pk }}</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<section class="card empty">
+  <h2>No VPS servers yet.</h2>
+  <p>After a paid VPS order starts provisioning, it will appear here.</p>
+  <a class="button" href="{% url 'plans' %}">Browse VPS plans</a>
+</section>
+{% endif %}
+{% endblock %}
