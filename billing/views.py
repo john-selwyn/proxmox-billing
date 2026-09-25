@@ -6,11 +6,13 @@ from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from .xendit import configured as xendit_configured
 from .forms import AccountForm, BillingCycleForm, RegistrationForm
 from .models import Customer, Invoice, Order, Subscription, VPSPlan
+from .provisioning import get_vps_provisioning_status
 from .services import confirm_order, plan_amount
 
 CHECKOUT_SALT = 'billing.order-review'
@@ -122,6 +124,32 @@ def orders(request):
 def order_detail(request, order_id):
     order = get_object_or_404(Order.objects.select_related('plan', 'invoice'), pk=order_id, customer__user=request.user)
     return render(request, 'billing/order_detail.html', {'order': order, **payment_context(order)})
+
+
+@login_required
+@require_GET
+def provisioning_status(request, order_id):
+    order = get_object_or_404(
+        Order.objects.select_related('invoice'),
+        pk=order_id,
+        customer__user=request.user,
+    )
+    if order.invoice.status == Invoice.Status.PAID and order.status in (
+        Order.Status.PAID, Order.Status.PROVISIONING, Order.Status.ACTIVE
+    ):
+        try:
+            order = get_vps_provisioning_status(order)
+        except ValidationError:
+            order.refresh_from_db()
+
+    return JsonResponse({
+        'status': order.status,
+        'progress': order.provisioning_progress,
+        'step': order.provisioning_step,
+        'vmid': order.provisioning_vmid,
+        'ip_address': order.provisioning_ip_address or '',
+        'error': bool(order.provisioning_error),
+    })
 
 
 @login_required
