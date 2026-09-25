@@ -499,3 +499,138 @@ code {
   font-family:Consolas,Monaco,monospace;
   font-size:.92em
 }
+
+.dashboard-section {
+  margin-top:32px
+}
+.compact-heading {
+  margin-bottom:18px
+}
+.server-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:22px
+}
+.dashboard-servers {
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr))
+}
+.server-card {
+  display:flex;
+  flex-direction:column;
+  gap:20px
+}
+.server-card h2 {
+  margin:0
+}
+.server-card-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:18px
+}
+.server-card-head .eyebrow {
+  margin-bottom:8px
+}
+.server-progress small {
+  display:block;
+  color:#5e6b80;
+  margin-top:8px
+}
+.server-facts {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  margin:0
+}
+.server-facts div {
+  border:1px solid #e5eaf1;
+  border-radius:10px;
+  padding:12px
+}
+.server-facts dt {
+  color:#6a788d;
+  font-size:.78rem;
+  margin-bottom:3px
+}
+.server-facts dd {
+  margin:0;
+  font-weight:650;
+  overflow-wrap:anywhere
+}
+.server-card-actions {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:16px;
+  margin-top:auto
+}
+.server-title {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:24px;
+  margin:26px 0 10px
+}
+.server-title h1 {
+  margin-bottom:8px
+}
+.manage-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:22px;
+  margin-top:22px
+}
+.manage-grid .card:last-child {
+  grid-column:1 / -1
+}
+.connection-box {
+  position:relative;
+  border:1px solid #dfe6ef;
+  border-radius:10px;
+  padding:14px 128px 14px 14px;
+  margin:14px 0
+}
+.connection-box span {
+  display:block;
+  color:#6a788d;
+  font-size:.78rem;
+  margin-bottom:4px
+}
+.connection-box strong {
+  display:block;
+  overflow-wrap:anywhere
+}
+.copy-button {
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  padding:7px 11px;
+  font-size:.78rem
+}
+.connection-note {
+  margin-bottom:0
+}
+.compact-empty {
+  padding:26px 20px
+}
+
+@media(max-width:800px) {
+  .manage-grid {
+    grid-template-columns:1fr
+  }
+  .manage-grid .card:last-child {
+    grid-column:auto
+  }
+  .server-title {
+    flex-direction:column
+  }
+  .connection-box {
+    padding-right:14px
+  }
+  .copy-button {
+    position:static;
+    transform:none;
+    margin-top:10px
+  }
+}
