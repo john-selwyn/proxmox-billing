@@ -450,3 +450,52 @@ footer {
 
 }
 
+
+.provisioning-card {
+  margin-top:22px
+}
+.provisioning-heading {
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:flex-start
+}
+.provisioning-heading p {
+  margin:5px 0 0
+}
+.provisioning-percent {
+  font-size:1.6rem;
+  color:#17243b
+}
+.provisioning-track {
+  height:14px;
+  background:#dfe8f6;
+  border-radius:999px;
+  overflow:hidden;
+  margin:16px 0
+}
+.provisioning-bar {
+  height:100%;
+  min-width:2px;
+  background:#2856c5;
+  border-radius:inherit;
+  transition:width .5s ease
+}
+.provisioning-bar.complete {
+  background:#23835b
+}
+.provisioning-meta {
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px 28px;
+  font-size:.9rem
+}
+.provisioning-failed {
+  background:#fff0f1;
+  border-color:#f0c7cb;
+  color:#8d2d38
+}
+code {
+  font-family:Consolas,Monaco,monospace;
+  font-size:.92em
+}
