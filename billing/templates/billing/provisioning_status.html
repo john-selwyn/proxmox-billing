@@ -42,6 +42,7 @@
 </div>
 
 {% if order.status != 'FAILED' %}
+{% if order.status != 'ACTIVE' or not order.provisioning_ip_address %}
 <script>
 (() => {
   const root = document.getElementById("provisioning-status");
@@ -102,5 +103,6 @@
   poll();
 })();
 </script>
+{% endif %}
 {% endif %}
 {% endif %}
