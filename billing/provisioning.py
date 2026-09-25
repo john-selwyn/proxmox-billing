@@ -46,7 +46,7 @@ def _claim(order_id, *, sync, retry):
     with transaction.atomic():
         order = Order.objects.select_for_update().get(pk=order_id)
         require_paid(order)
-        if order.status == Order.Status.ACTIVE:
+        if order.status == Order.Status.ACTIVE and (not sync or order.provisioning_ip_address):
             return None
         if order.provisioning_lease and order.provisioning_started_at and order.provisioning_started_at > now - LEASE_TIME:
             return None
