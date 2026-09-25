@@ -634,3 +634,63 @@ code {
     margin-top:10px
   }
 }
+
+.runtime-state {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  font-weight:700
+}
+.runtime-state::before {
+  content:"";
+  width:9px;
+  height:9px;
+  border-radius:999px;
+  background:#94a3b8
+}
+.runtime-state.running::before {
+  background:#16a34a
+}
+.runtime-state.stopped::before {
+  background:#64748b
+}
+.runtime-state.paused::before,
+.runtime-state.suspended::before {
+  background:#d97706
+}
+.runtime-state.unknown::before,
+.runtime-state.checking::before {
+  background:#94a3b8
+}
+.power-actions {
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+  margin:22px 0 12px
+}
+.power-actions form {
+  margin:0
+}
+.power-button {
+  min-width:110px
+}
+.secondary-power {
+  background:#fff;
+  border-color:#aebbd0;
+  color:#27364f
+}
+.secondary-power:hover {
+  background:#eef3f9;
+  color:#17243b
+}
+.power-button:disabled,
+.power-button:disabled:hover {
+  cursor:not-allowed;
+  opacity:.45;
+  background:#edf0f5;
+  border-color:#d6dde8;
+  color:#7a8799
+}
+.power-help {
+  margin-bottom:0
+}
