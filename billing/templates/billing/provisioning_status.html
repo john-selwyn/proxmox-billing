@@ -41,7 +41,7 @@
   {% endif %}
 </div>
 
-{% if order.status == 'PROVISIONING' or order.status == 'PAID' %}
+{% if order.status != 'FAILED' %}
 <script>
 (() => {
   const root = document.getElementById("provisioning-status");
