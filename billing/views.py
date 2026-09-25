@@ -58,7 +58,40 @@ def dashboard(request):
         'active_count': customer.subscriptions.filter(status=Subscription.Status.ACTIVE).count(),
         'pending_count': Invoice.objects.filter(order__customer=customer, status=Invoice.Status.PENDING).count(),
         'orders': records[:5],
+        'services': records.filter(
+            invoice__status=Invoice.Status.PAID,
+            status__in=[Order.Status.PAID, Order.Status.PROVISIONING, Order.Status.ACTIVE, Order.Status.FAILED],
+        )[:3],
     })
+
+
+@login_required
+@require_GET
+def my_vps(request):
+    services = (
+        Order.objects.filter(customer__user=request.user, invoice__status=Invoice.Status.PAID)
+        .filter(status__in=[Order.Status.PAID, Order.Status.PROVISIONING, Order.Status.ACTIVE, Order.Status.FAILED])
+        .select_related('plan', 'invoice')
+        .order_by('-created_at', '-pk')
+    )
+    return render(request, 'billing/my_vps.html', {'services': services})
+
+
+@login_required
+@require_GET
+def vps_detail(request, order_id):
+    order = get_object_or_404(
+        Order.objects.select_related('plan', 'invoice', 'subscription'),
+        pk=order_id,
+        customer__user=request.user,
+        invoice__status=Invoice.Status.PAID,
+    )
+    if order.status in (Order.Status.PAID, Order.Status.PROVISIONING, Order.Status.ACTIVE):
+        try:
+            order = get_vps_provisioning_status(order)
+        except ValidationError:
+            order.refresh_from_db()
+    return render(request, 'billing/vps_detail.html', {'order': order})
 
 
 @login_required
