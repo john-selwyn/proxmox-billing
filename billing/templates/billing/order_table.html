@@ -7,6 +7,7 @@
 <th>Cycle</th>
 <th>Amount (PHP)</th>
 <th>Status</th>
+<th>VPS</th>
 <th>Created</th>
 <th>Invoice</th>
 </tr>
@@ -19,8 +20,17 @@
 </td>
 <td>{{ order.get_billing_cycle_display }}</td>
 <td>{{ order.amount }}</td>
+<td><span class="badge {{ order.status|lower }}">{{ order.get_status_display }}</span></td>
 <td>
-<span class="badge {{ order.status|lower }}">{{ order.get_status_display }}</span>
+{% if order.provisioning_ip_address %}
+<code>{{ order.provisioning_ip_address }}</code>
+{% elif order.status == 'PROVISIONING' %}
+<span class="muted">{{ order.provisioning_progress }}% provisioning</span>
+{% elif order.provisioning_vmid %}
+<span class="muted">VMID {{ order.provisioning_vmid }}</span>
+{% else %}
+<span class="muted">—</span>
+{% endif %}
 </td>
 <td>{{ order.created_at|date:'M j, Y' }}</td>
 <td>{% if order.invoice %}<a href="{% url 'invoice' order.pk %}">{{ order.invoice.invoice_number }}</a>{% else %}<span class="muted">Not issued</span>{% endif %}</td>
