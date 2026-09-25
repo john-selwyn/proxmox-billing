@@ -102,6 +102,9 @@ def _finish(order_id, lease, result=None, error=''):
             order.provisioning_error = result.error
             order.provisioning_vps_id = result.vps_id or order.provisioning_vps_id
             order.provisioning_vmid = result.vmid or order.provisioning_vmid
+            order.provisioning_progress = result.progress
+            order.provisioning_step = result.current_step
+            order.provisioning_ip_address = result.ip_address or order.provisioning_ip_address
             if result.status == Order.Status.ACTIVE:
                 now = timezone.now()
                 subscription, created = Subscription.objects.get_or_create(order=order, defaults={
@@ -115,7 +118,8 @@ def _finish(order_id, lease, result=None, error=''):
                     subscription.status = Subscription.Status.ACTIVE
                     subscription.save(update_fields=['status'])
         order.save(update_fields=['status', 'provisioning_status', 'provisioning_error',
-            'provisioning_vps_id', 'provisioning_vmid', 'provisioning_lease',
+            'provisioning_vps_id', 'provisioning_vmid', 'provisioning_progress',
+            'provisioning_step', 'provisioning_ip_address', 'provisioning_lease',
             'provisioning_checked_at', 'updated_at'])
     return order
 
