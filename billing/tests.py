@@ -37,6 +37,29 @@ class PortalTests(TestCase):
                                due_date=timezone.now() + timedelta(days=1))
         return order
 
+    def service_order(self, customer=None, status='ACTIVE', vmid='1006', ip='220.100.130.210'):
+        customer = customer or self.user.customer_profile
+        order = Order.objects.create(
+            customer=customer, plan=self.plan, billing_cycle='MONTHLY', amount='299.00',
+            status=status, provisioning_status='ACTIVE' if status == 'ACTIVE' else 'ACCEPTED',
+            provisioning_vps_id='10', provisioning_vmid=vmid,
+            provisioning_progress=100 if status == 'ACTIVE' else 42,
+            provisioning_step='VPS is ready.' if status == 'ACTIVE' else 'Cloning template (42%)',
+            provisioning_ip_address=ip if status == 'ACTIVE' else None,
+            provisioning_payload={'os': 'Ubuntu 26.04'},
+        )
+        Invoice.objects.create(
+            order=order, invoice_number=f'SERVICE-{order.pk}', amount=order.amount,
+            status=Invoice.Status.PAID, paid_at=timezone.now(),
+            due_date=timezone.now() + timedelta(days=1),
+        )
+        if status == 'ACTIVE':
+            Subscription.objects.create(
+                customer=customer, order=order, status=Subscription.Status.ACTIVE,
+                start_date=timezone.now(), next_billing_date=timezone.now() + timedelta(days=30),
+            )
+        return order
+
     def test_registration_creates_profile_and_logs_in(self):
         self.client.logout()
         response = self.client.post(reverse('register'), {'username': 'newcustomer',
@@ -58,9 +81,10 @@ class PortalTests(TestCase):
 
     def test_anonymous_pages_are_protected(self):
         self.client.logout()
-        for name, args in [('dashboard', []), ('plans', []), ('orders', []),
-            ('invoices', []), ('account', []), ('select_plan', [self.plan.pk]),
-            ('invoice', [1]), ('order_detail', [1]), ('order_confirm', [])]:
+        for name, args in [('dashboard', []), ('my_vps', []), ('vps_detail', [1]),
+            ('plans', []), ('orders', []), ('invoices', []), ('account', []),
+            ('select_plan', [self.plan.pk]), ('invoice', [1]), ('order_detail', [1]),
+            ('order_confirm', [])]:
             with self.subTest(page=name):
                 self.assertEqual(self.client.get(reverse(name, args=args)).status_code, 302)
         self.assertEqual(self.client.post(reverse('order_confirm')).status_code, 302)
@@ -197,6 +221,34 @@ class PortalTests(TestCase):
         self.assertEqual(response.context['pending_count'], 1)
         self.assertNotContains(response, 'OTHER-INVOICE')
 
+    def test_my_vps_is_scoped_and_shows_connection_details(self):
+        mine = self.service_order()
+        other = self.service_order(customer=self.other.customer_profile, vmid='1007', ip='220.100.130.211')
+        response = self.client.get(reverse('my_vps'))
+        self.assertContains(response, 'My VPS')
+        self.assertContains(response, mine.provisioning_ip_address)
+        self.assertContains(response, reverse('vps_detail', args=[mine.pk]))
+        self.assertNotContains(response, other.provisioning_ip_address)
+        self.assertNotContains(response, reverse('vps_detail', args=[other.pk]))
+
+    def test_vps_detail_is_scoped_and_shows_server_and_billing(self):
+        mine = self.service_order()
+        other = self.service_order(customer=self.other.customer_profile, vmid='1007', ip='220.100.130.211')
+        response = self.client.get(reverse('vps_detail', args=[mine.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Server overview')
+        self.assertContains(response, mine.provisioning_ip_address)
+        self.assertContains(response, 'ssh &lt;username&gt;@')
+        self.assertContains(response, 'Ubuntu 26.04')
+        self.assertEqual(self.client.get(reverse('vps_detail', args=[other.pk])).status_code, 404)
+
+    def test_dashboard_surfaces_vps_management(self):
+        mine = self.service_order()
+        response = self.client.get(reverse('dashboard'))
+        self.assertContains(response, 'Your VPS servers')
+        self.assertContains(response, mine.provisioning_ip_address)
+        self.assertContains(response, 'Manage VPS')
+
     def test_account_update_only_changes_own_profile(self):
         self.client.post(reverse('account'), {'full_name': 'Alice Updated', 'company': 'Example',
             'phone': '123', 'user': self.other.pk, 'id': self.other.customer_profile.pk})
@@ -215,7 +267,7 @@ class PortalTests(TestCase):
         self.assertEqual(client.post(reverse('register'), {}).status_code, 403)
 
     def test_pages_render_and_empty_states(self):
-        for name in ['home', 'dashboard', 'plans', 'orders', 'invoices', 'account']:
+        for name in ['home', 'dashboard', 'my_vps', 'plans', 'orders', 'invoices', 'account']:
             with self.subTest(page=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 200)
         self.assertContains(self.client.get(reverse('orders')), 'No orders yet')
