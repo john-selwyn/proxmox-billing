@@ -14,5 +14,13 @@
 <dd>{{ order.amount }}</dd>
 <dt>Created</dt>
 <dd>{{ order.created_at|date:'M j, Y H:i T' }}</dd>
+{% if order.provisioning_vmid %}
+<dt>VMID</dt>
+<dd>{{ order.provisioning_vmid }}</dd>
+{% endif %}
+{% if order.provisioning_ip_address %}
+<dt>IP address</dt>
+<dd><code>{{ order.provisioning_ip_address }}</code></dd>
+{% endif %}
 </dl>{% if order.invoice %}<a class="button" href="{% url 'invoice' order.pk %}">View invoice</a>{% else %}
 <p class="notice">An invoice has not been issued for this order.</p>{% endif %}</section>{% endblock %}
