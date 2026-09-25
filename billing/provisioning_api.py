@@ -20,6 +20,9 @@ class ProvisioningResult:
     status: str
     vps_id: str = ''
     vmid: str = ''
+    progress: int = 0
+    current_step: str = ''
+    ip_address: str = ''
     error: str = ''
 
 
@@ -50,9 +53,30 @@ def parse_response(data, *, order_id):
             ids.append(str(value))
         else:
             raise ProvisioningAPIError('INVALID_RESPONSE')
-    # Never persist raw error_message, current_step, IPs, or response bodies.
-    # Operators correlate this safe category with VM100 using the order ID.
-    return ProvisioningResult(mapped, *ids, error='REMOTE_FAILED' if mapped == 'FAILED' else '')
+    progress = data.get('progress', 100 if mapped == 'ACTIVE' else 0)
+    if not isinstance(progress, int) or isinstance(progress, bool) or not 0 <= progress <= 100:
+        raise ProvisioningAPIError('INVALID_RESPONSE')
+
+    current_step = data.get('current_step', '')
+    if not isinstance(current_step, str) or len(current_step) > 255:
+        raise ProvisioningAPIError('INVALID_RESPONSE')
+
+    ip_address = data.get('ip_address', '')
+    if ip_address in (None, '0.0.0.0'):
+        ip_address = ''
+    elif not isinstance(ip_address, str) or len(ip_address) > 45:
+        raise ProvisioningAPIError('INVALID_RESPONSE')
+    else:
+        import ipaddress
+        try:
+            ipaddress.ip_address(ip_address)
+        except ValueError:
+            raise ProvisioningAPIError('INVALID_RESPONSE') from None
+
+    return ProvisioningResult(
+        mapped, *ids, progress=progress, current_step=current_step,
+        ip_address=ip_address, error='REMOTE_FAILED' if mapped == 'FAILED' else ''
+    )
 
 
 @sensitive_variables()
