@@ -92,6 +92,7 @@
       // Keep polling an ACTIVE VPS until its guest IP appears.
       if (data.status === "ACTIVE" && data.ip_address) {
         stopped = true;
+        setTimeout(() => window.location.reload(), 700);
         return;
       }
     } catch (error) {
