@@ -86,11 +86,6 @@ def vps_detail(request, order_id):
         customer__user=request.user,
         invoice__status=Invoice.Status.PAID,
     )
-    if order.status in (Order.Status.PAID, Order.Status.PROVISIONING, Order.Status.ACTIVE):
-        try:
-            order = get_vps_provisioning_status(order)
-        except ValidationError:
-            order.refresh_from_db()
     return render(request, 'billing/vps_detail.html', {'order': order})
 
 
