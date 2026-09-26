@@ -125,8 +125,16 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
   };
   const statusUrl = "{% url 'vps_runtime_status' order.pk %}";
 
-  function setButtons(state) {
+  function setButtons(state, operation) {
     Object.values(buttons).forEach((button) => { if (button) button.disabled = true; });
+    if (operation && ["pending", "running", "unknown"].includes(operation.status)) {
+      if (operation.status === "unknown") {
+        helpEl.textContent = "A power command needs support review before another command can be sent.";
+      } else {
+        helpEl.textContent = operation.action.charAt(0).toUpperCase() + operation.action.slice(1) + " is being processed...";
+      }
+      return;
+    }
     if (state === "running") {
       buttons.shutdown.disabled = false;
       buttons.reboot.disabled = false;
@@ -151,11 +159,11 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
 
       stateEl.textContent = state === "unknown" ? "Unavailable" : state.charAt(0).toUpperCase() + state.slice(1);
       stateEl.className = "runtime-state " + state;
-      setButtons(state);
+      setButtons(state, data.operation || null);
     } catch (error) {
       stateEl.textContent = "Unavailable";
       stateEl.className = "runtime-state unknown";
-      setButtons("unknown");
+      setButtons("unknown", null);
     }
     setTimeout(refreshRuntime, 4000);
   }

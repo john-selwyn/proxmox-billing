@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -261,3 +263,65 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"Subscription #{self.id}"
+
+
+class VPSPowerOperation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "pending"
+        RUNNING = "running", "running"
+        SUCCEEDED = "succeeded", "succeeded"
+        FAILED = "failed", "failed"
+        UNKNOWN = "unknown", "unknown"
+
+    class Result(models.TextChoices):
+        EXECUTED = "executed", "executed"
+        NOOP = "noop", "noop"
+
+    class ObservedState(models.TextChoices):
+        RUNNING = "running", "running"
+        STOPPED = "stopped", "stopped"
+        PAUSED = "paused", "paused"
+        SUSPENDED = "suspended", "suspended"
+        UNKNOWN = "unknown", "unknown"
+
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="power_operations")
+    idempotency_key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    remote_operation_id = models.UUIDField(null=True, blank=True, unique=True, editable=False)
+    action = models.CharField(max_length=8, choices=[
+        ("start", "start"), ("shutdown", "shutdown"), ("reboot", "reboot"),
+    ])
+    status = models.CharField(max_length=9, choices=Status.choices, default=Status.PENDING)
+    result = models.CharField(max_length=8, choices=Result.choices, null=True, blank=True)
+    observed_state = models.CharField(
+        max_length=9, choices=ObservedState.choices, default=ObservedState.UNKNOWN
+    )
+    observed_at = models.DateTimeField(null=True, blank=True)
+    error_code = models.CharField(max_length=40, blank=True)
+    sync_attempts = models.PositiveSmallIntegerField(default=0)
+    next_sync_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["order", "status", "updated_at"], name="billing_power_work_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order"],
+                condition=models.Q(status__in=["pending", "running", "unknown"]),
+                name="one_unresolved_billing_power_per_order",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(action__in=["start", "shutdown", "reboot"]),
+                name="billing_power_valid_action",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(status__in=["pending", "running", "succeeded", "failed", "unknown"]),
+                name="billing_power_valid_status",
+            ),
+        ]
+
+    @property
+    def unresolved(self):
+        return self.status in {self.Status.PENDING, self.Status.RUNNING, self.Status.UNKNOWN}

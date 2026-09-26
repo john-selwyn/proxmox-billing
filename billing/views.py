@@ -5,16 +5,16 @@ from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from .xendit import configured as xendit_configured
 from .forms import AccountForm, BillingCycleForm, RegistrationForm
-from .models import Customer, Invoice, Order, Subscription, VPSPlan
+from .models import Customer, Invoice, Order, Subscription, VPSPlan, VPSPowerOperation
 from .provisioning import get_vps_provisioning_status
 from .services import confirm_order, plan_amount
-from .vps_control import VPSControlError, get_vps_runtime, power_vps
+from .vps_control import VPSControlError, get_vps_runtime, sync_power_operation
 
 CHECKOUT_SALT = 'billing.order-review'
 
@@ -105,7 +105,34 @@ def vps_runtime_status(request, order_id):
             'state': order.status.lower(),
             'vmid': order.provisioning_vmid,
             'ip_address': order.provisioning_ip_address or '',
+            'operation': None,
         })
+
+    operation = (
+        order.power_operations
+        .filter(status__in=[
+            VPSPowerOperation.Status.PENDING,
+            VPSPowerOperation.Status.RUNNING,
+            VPSPowerOperation.Status.UNKNOWN,
+        ])
+        .order_by('-created_at', '-pk')
+        .first()
+    )
+    if operation is not None:
+        try:
+            sync_power_operation(operation)
+        except VPSControlError:
+            operation.refresh_from_db()
+
+    operation_data = None
+    if operation is not None:
+        operation_data = {
+            'action': operation.action,
+            'status': operation.status,
+            'result': operation.result,
+            'observed_state': operation.observed_state,
+            'error': bool(operation.error_code),
+        }
 
     try:
         runtime = get_vps_runtime(order.pk)
@@ -116,6 +143,7 @@ def vps_runtime_status(request, order_id):
             'vmid': order.provisioning_vmid,
             'ip_address': order.provisioning_ip_address or '',
             'error': True,
+            'operation': operation_data,
         })
 
     if runtime.ip_address and runtime.ip_address != order.provisioning_ip_address:
@@ -124,36 +152,62 @@ def vps_runtime_status(request, order_id):
     return JsonResponse({
         'available': True,
         'state': runtime.state,
-        'vmid': runtime.vmid,
+        'vmid': order.provisioning_vmid,
         'ip_address': runtime.ip_address or order.provisioning_ip_address or '',
+        'operation': operation_data,
     })
 
 
 @login_required
 @require_POST
 def vps_power(request, order_id, action):
-    order = get_object_or_404(
-        Order,
-        pk=order_id,
-        customer__user=request.user,
-        invoice__status=Invoice.Status.PAID,
-        status=Order.Status.ACTIVE,
-    )
     if action not in {'start', 'shutdown', 'reboot'}:
         return JsonResponse({'error': 'Invalid power action.'}, status=400)
 
     try:
-        result = power_vps(order.pk, action)
-    except VPSControlError as exc:
-        if exc.code == 'HTTP_409':
-            messages.error(request, 'That power action is not available for the VPS current state.')
+        with transaction.atomic():
+            order = get_object_or_404(
+                Order.objects.select_for_update(),
+                pk=order_id,
+                customer__user=request.user,
+                invoice__status=Invoice.Status.PAID,
+                status=Order.Status.ACTIVE,
+            )
+            existing = order.power_operations.filter(status__in=[
+                VPSPowerOperation.Status.PENDING,
+                VPSPowerOperation.Status.RUNNING,
+                VPSPowerOperation.Status.UNKNOWN,
+            ]).order_by('-created_at', '-pk').first()
+            if existing is not None:
+                messages.error(request, 'A VPS power operation is already in progress or awaiting review.')
+                return redirect('vps_detail', order_id=order.pk)
+            operation = VPSPowerOperation.objects.create(order=order, action=action)
+    except IntegrityError:
+        messages.error(request, 'A VPS power operation is already in progress.')
+        return redirect('vps_detail', order_id=order_id)
+
+    try:
+        sync_power_operation(operation, force=True)
+    except VPSControlError:
+        operation.refresh_from_db()
+        if operation.status == VPSPowerOperation.Status.FAILED:
+            messages.error(request, 'The VPS power command was rejected.')
+        elif operation.status == VPSPowerOperation.Status.UNKNOWN:
+            messages.error(request, 'The VPS power command status needs support review before another command can be sent.')
         else:
-            messages.error(request, 'The VPS power command could not be sent right now.')
+            messages.info(request, 'The VPS power command is awaiting confirmation. It will be checked again safely.')
     else:
-        if result.get('changed'):
-            messages.success(request, f'{action.title()} command sent to your VPS.')
+        if operation.status == VPSPowerOperation.Status.SUCCEEDED:
+            if operation.result == VPSPowerOperation.Result.NOOP:
+                messages.success(request, 'Your VPS is already in the requested state.')
+            else:
+                messages.success(request, f'{action.title()} completed successfully.')
+        elif operation.status in {VPSPowerOperation.Status.PENDING, VPSPowerOperation.Status.RUNNING}:
+            messages.success(request, f'{action.title()} command accepted and is processing.')
+        elif operation.status == VPSPowerOperation.Status.UNKNOWN:
+            messages.error(request, 'The VPS power command status needs support review.')
         else:
-            messages.success(request, f'Your VPS is already in the requested state.')
+            messages.error(request, 'The VPS power command failed.')
     return redirect('vps_detail', order_id=order.pk)
 
 
