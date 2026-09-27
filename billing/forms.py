@@ -45,6 +45,10 @@ class AccountForm(forms.ModelForm):
 
 
 class BillingCycleForm(forms.Form):
+    operating_system = forms.ChoiceField(
+        label="Operating system",
+        choices=Order.OperatingSystem.choices,
+    )
     billing_cycle = forms.ChoiceField(choices=Order.BillingCycle.choices, widget=forms.RadioSelect)
     ssh_public_key = forms.CharField(
         label="SSH public key",
