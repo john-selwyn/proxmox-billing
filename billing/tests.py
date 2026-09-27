@@ -26,7 +26,8 @@ class PortalTests(TestCase):
         self.client.force_login(self.user)
 
     def review(self, cycle='MONTHLY', **extra):
-        data = {'billing_cycle': cycle, 'ssh_public_key': TEST_SSH_PUBLIC_KEY}
+        data = {'billing_cycle': cycle, 'operating_system': 'Ubuntu 26.04',
+                'ssh_public_key': TEST_SSH_PUBLIC_KEY}
         data.update(extra)
         return self.client.post(reverse('select_plan', args=[self.plan.pk]), data)
 
@@ -115,6 +116,12 @@ class PortalTests(TestCase):
         self.assertFalse(Subscription.objects.exists())
         self.assertEqual(order.ssh_username, 'vpsuser')
         self.assertEqual(order.ssh_public_key, TEST_SSH_PUBLIC_KEY)
+
+    def test_debian_operating_system_is_frozen_on_order(self):
+        response = self.checkout(operating_system='Debian 13')
+        self.assertEqual(response.status_code, 302)
+        order = Order.objects.get(customer=self.user.customer_profile)
+        self.assertEqual(order.operating_system, 'Debian 13')
 
     def test_yearly_order(self):
         self.checkout('YEARLY')
