@@ -226,15 +226,19 @@ def select_plan(request, plan_id):
     form = BillingCycleForm(request.POST if request.method == 'POST' else None)
     if request.method == 'POST' and form.is_valid():
         cycle = form.cleaned_data['billing_cycle']
+        ssh_public_key = form.cleaned_data['ssh_public_key']
+        ssh_username = 'vpsuser'
         try:
             amount = plan_amount(plan, cycle)
         except ValidationError as exc:
             form.add_error(None, exc)
         else:
             token = signing.dumps({'user': request.user.pk, 'plan': plan.pk,
-                'cycle': cycle, 'amount': str(amount), 'key': str(uuid.uuid4())}, salt=CHECKOUT_SALT)
+                'cycle': cycle, 'amount': str(amount), 'key': str(uuid.uuid4()),
+                'ssh_username': ssh_username, 'ssh_public_key': ssh_public_key}, salt=CHECKOUT_SALT)
             return render(request, 'billing/review_order.html', {
                 'plan': plan, 'cycle': cycle, 'amount': amount, 'checkout_token': token,
+                'ssh_username': ssh_username,
             })
     return render(request, 'billing/select_plan.html', {'plan': plan, 'form': form},
                   status=400 if request.method == 'POST' else 200)
@@ -253,7 +257,8 @@ def order_confirm(request):
         }, status=400)
     try:
         order = confirm_order(customer=customer_for(request.user), plan_id=data['plan'],
-            cycle=data['cycle'], checkout_token=data['key'], reviewed_amount=data['amount'])
+            cycle=data['cycle'], checkout_token=data['key'], reviewed_amount=data['amount'],
+            ssh_username=data['ssh_username'], ssh_public_key=data['ssh_public_key'])
     except (ValidationError, VPSPlan.DoesNotExist) as exc:
         error = 'This plan is no longer available. Please choose another plan.'
         if isinstance(exc, ValidationError):

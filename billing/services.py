@@ -18,9 +18,14 @@ def plan_amount(plan, cycle):
 
 
 @transaction.atomic
-def confirm_order(*, customer, plan_id, cycle, checkout_token, reviewed_amount):
+def confirm_order(*, customer, plan_id, cycle, checkout_token, reviewed_amount,
+                  ssh_username="", ssh_public_key=""):
     existing = Order.objects.filter(checkout_token=checkout_token, customer=customer).first()
     if existing:
+        if ssh_username and (
+            existing.ssh_username != ssh_username or existing.ssh_public_key != ssh_public_key
+        ):
+            raise ValidationError("This checkout SSH configuration does not match the existing order.")
         return existing
     # Serialize purchases on PostgreSQL; uniqueness also protects token retries.
     plan = VPSPlan.objects.select_for_update().get(pk=plan_id, is_active=True)
@@ -30,7 +35,8 @@ def confirm_order(*, customer, plan_id, cycle, checkout_token, reviewed_amount):
     order, created = Order.objects.get_or_create(
         checkout_token=checkout_token,
         defaults={'customer': customer, 'plan': plan, 'billing_cycle': cycle,
-                  'amount': amount, 'status': Order.Status.PENDING},
+                  'amount': amount, 'status': Order.Status.PENDING,
+                  'ssh_username': ssh_username, 'ssh_public_key': ssh_public_key},
     )
     if order.customer_id != customer.pk:
         raise ValidationError('This checkout belongs to another account.')

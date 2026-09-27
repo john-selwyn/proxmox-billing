@@ -89,6 +89,19 @@ class ProvisioningTests(TransactionTestCase):
         self.assertEqual(self.order.provisioning_vps_id, '15')
         self.assertEqual(self.order.provisioning_vmid, '115')
 
+    def test_ssh_access_is_forwarded_from_frozen_order(self):
+        key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEjYzQzM0MTA0Y2QyNDhlMjQ5MTk2ZDA2ZDBlMTA1YzQ2ZTU test@example"
+        Order.objects.filter(pk=self.order.pk).update(
+            ssh_username="vpsuser", ssh_public_key=key
+        )
+        self.order.refresh_from_db()
+        self.pay()
+        payload = self.http.call_args.kwargs["json"]
+        self.assertEqual(payload["ssh_username"], "vpsuser")
+        self.assertEqual(payload["ssh_public_key"], key)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.provisioning_payload["ssh_public_key"], key)
+
     def test_http_occurs_only_after_commit(self):
         def response(*args, **kwargs):
             self.assertFalse(connection.in_atomic_block)

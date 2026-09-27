@@ -11,6 +11,9 @@ from django.utils import timezone
 from .models import Customer, Invoice, Order, Payment, Subscription, VPSPlan
 
 
+TEST_SSH_PUBLIC_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEjYzQzM0MTA0Y2QyNDhlMjQ5MTk2ZDA2ZDBlMTA1YzQ2ZTU test@example"
+
+
 class PortalTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -23,8 +26,9 @@ class PortalTests(TestCase):
         self.client.force_login(self.user)
 
     def review(self, cycle='MONTHLY', **extra):
-        return self.client.post(reverse('select_plan', args=[self.plan.pk]),
-                                {'billing_cycle': cycle, **extra})
+        data = {'billing_cycle': cycle, 'ssh_public_key': TEST_SSH_PUBLIC_KEY}
+        data.update(extra)
+        return self.client.post(reverse('select_plan', args=[self.plan.pk]), data)
 
     def checkout(self, cycle='MONTHLY', **extra):
         token = self.review(cycle).context['checkout_token']
@@ -47,6 +51,7 @@ class PortalTests(TestCase):
             provisioning_step='VPS is ready.' if status == 'ACTIVE' else 'Cloning template (42%)',
             provisioning_ip_address=ip if status == 'ACTIVE' else None,
             provisioning_payload={'os': 'Ubuntu 26.04'},
+            ssh_username='vpsuser', ssh_public_key=TEST_SSH_PUBLIC_KEY,
         )
         Invoice.objects.create(
             order=order, invoice_number=f'SERVICE-{order.pk}', amount=order.amount,
@@ -108,6 +113,8 @@ class PortalTests(TestCase):
         self.assertEqual(order.invoice.due_date, order.created_at + timedelta(days=1))
         self.assertFalse(Payment.objects.exists())
         self.assertFalse(Subscription.objects.exists())
+        self.assertEqual(order.ssh_username, 'vpsuser')
+        self.assertEqual(order.ssh_public_key, TEST_SSH_PUBLIC_KEY)
 
     def test_yearly_order(self):
         self.checkout('YEARLY')
@@ -127,6 +134,13 @@ class PortalTests(TestCase):
         self.assertEqual(order.invoice.amount, order.amount)
         self.assertEqual(order.status, 'PENDING')
         self.assertEqual(order.invoice.status, 'PENDING')
+
+    def test_invalid_ssh_public_key_rejected(self):
+        for key_value in ('', 'not-a-key', '-----BEGIN OPENSSH PRIVATE KEY-----'):
+            with self.subTest(key=key_value):
+                response = self.review(ssh_public_key=key_value)
+                self.assertEqual(response.status_code, 400)
+        self.assertFalse(Order.objects.exists())
 
     def test_invalid_cycles_rejected(self):
         for cycle in ['weekly', '', 'monthly', 'YEARLY<script>']:
@@ -238,7 +252,7 @@ class PortalTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Server overview')
         self.assertContains(response, mine.provisioning_ip_address)
-        self.assertContains(response, 'ssh &lt;username&gt;@')
+        self.assertContains(response, 'ssh vpsuser@')
         self.assertContains(response, 'Ubuntu 26.04')
         self.assertEqual(self.client.get(reverse('vps_detail', args=[other.pk])).status_code, 404)
 

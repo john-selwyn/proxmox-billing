@@ -57,7 +57,7 @@
   <section class="card">
     <h2>Remote access</h2>
     {% if order.provisioning_ip_address %}
-      <p class="muted">Connect to your VPS using SSH while the server is running. Use the username configured by the server image.</p>
+      <p class="muted">Connect with the private key that matches the public key supplied when you ordered this VPS.</p>
       <div class="connection-box">
         <span>IP address</span>
         <strong><code id="server-ip">{{ order.provisioning_ip_address }}</code></strong>
@@ -65,8 +65,8 @@
       </div>
       <div class="connection-box">
         <span>SSH</span>
-        <strong><code id="ssh-command">ssh &lt;username&gt;@{{ order.provisioning_ip_address }}</code></strong>
-        <button class="copy-button" type="button" data-copy="ssh &lt;username&gt;@{{ order.provisioning_ip_address }}">Copy command</button>
+        <strong><code id="ssh-command">ssh {% if order.ssh_username %}{{ order.ssh_username }}{% else %}&lt;username&gt;{% endif %}@{{ order.provisioning_ip_address }}</code></strong>
+        <button class="copy-button" type="button" data-copy="ssh {% if order.ssh_username %}{{ order.ssh_username }}{% else %}<username>{% endif %}@{{ order.provisioning_ip_address }}">Copy command</button>
       </div>
       <p class="muted connection-note">Default SSH port: 22</p>
     {% else %}

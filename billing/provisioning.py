@@ -66,6 +66,10 @@ def _claim(order_id, *, sync, retry):
                        'cpu': plan.cpu, 'ram': plan.ram, 'storage': plan.storage,
                        'os': settings.PROVISIONING_DEFAULT_OS, 'billing_cycle': order.billing_cycle,
                        'plan': plan.name}
+            if bool(order.ssh_username) != bool(order.ssh_public_key):
+                raise ValidationError('SSH access configuration is incomplete.')
+            if order.ssh_username and order.ssh_public_key:
+                payload.update(ssh_username=order.ssh_username, ssh_public_key=order.ssh_public_key)
         lease = uuid.uuid4()
         # Conditional acquisition also avoids parallel winners on databases where
         # SELECT FOR UPDATE is unavailable. Late results require the same lease.

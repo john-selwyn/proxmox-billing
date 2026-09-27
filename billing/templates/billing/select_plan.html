@@ -18,6 +18,7 @@
 </p>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button>Review order &rarr;</button>
 </form>
+<p class="muted">The SSH public key will be installed in your VPS at provisioning time. Keep the matching private key only on your own device.</p>
 <p class="muted">You can review the total before confirming.</p>
 <a href="{% url 'plans' %}">Back to plans</a>
 </section>
