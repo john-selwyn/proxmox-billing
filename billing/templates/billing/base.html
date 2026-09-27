@@ -3,32 +3,43 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>{% block title %}Customer portal{% endblock %} | VPS Control Panel</title>
 <link rel="stylesheet" href="{% static 'billing/portal.css' %}">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header>
+<header class="site-header">
 <div class="nav-wrap">
-<a class="brand" href="{% url 'home' %}">
-<span class="brand-icon">V</span> VPS Control Panel</a>
+<a class="brand" href="{% url 'home' %}" aria-label="VPS Control Panel home">
+<span class="brand-icon" aria-hidden="true">V</span>
+<span class="brand-copy"><strong>VPS Control Panel</strong><small>Cloud services</small></span>
+</a>
 <nav aria-label="Main navigation">
-{% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Dashboard</a>
-<a href="{% url 'my_vps' %}">My VPS</a>
-<a href="{% url 'plans' %}">VPS Plans</a>
-<a href="{% url 'orders' %}">Orders</a>
-<a href="{% url 'invoices' %}">Invoices</a>
-<a href="{% url 'account' %}">Account</a>
-<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-button">Logout</button>
-</form>
-{% else %}<a href="{% url 'login' %}">Login</a>
-<a class="button small" href="{% url 'register' %}">Create account</a>{% endif %}
+{% with current=request.resolver_match.url_name %}
+{% if user.is_authenticated %}
+<a class="{% if current == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
+<a class="{% if current == 'my_vps' or current == 'vps_detail' %}active{% endif %}" href="{% url 'my_vps' %}">My VPS</a>
+<a class="{% if current == 'plans' or current == 'select_plan' or current == 'order_review' %}active{% endif %}" href="{% url 'plans' %}">VPS Plans</a>
+<a class="{% if current == 'orders' or current == 'order_detail' %}active{% endif %}" href="{% url 'orders' %}">Orders</a>
+<a class="{% if current == 'invoices' or current == 'invoice' %}active{% endif %}" href="{% url 'invoices' %}">Invoices</a>
+<a class="{% if current == 'account' %}active{% endif %}" href="{% url 'account' %}">Account</a>
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-button" type="submit">Logout</button></form>
+{% else %}
+<a class="{% if current == 'login' %}active{% endif %}" href="{% url 'login' %}">Login</a>
+<a class="button small" href="{% url 'register' %}">Create account</a>
+{% endif %}
+{% endwith %}
 </nav>
 </div>
 </header>
-<main id="main" class="container">{% for message in messages %}
-<div class="notice" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main>
-<footer class="container">VPS Control Panel <span>Servers, billing &amp; account management</span>
+<main id="main" class="container">
+{% for message in messages %}<div class="notice flash-notice" role="status">{{ message }}</div>{% endfor %}
+{% block content %}{% endblock %}
+</main>
+<footer class="container site-footer">
+<div><strong>VPS Control Panel</strong><span>Servers, billing &amp; account management</span></div>
+<span>Secure customer access &middot; SSH key authentication</span>
 </footer>
 </body>
 </html>
