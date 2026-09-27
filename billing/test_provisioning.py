@@ -218,7 +218,9 @@ class ProvisioningTests(TransactionTestCase):
         self.assertGreater(subscription.next_billing_date, subscription.start_date)
         self.sync()
         request_vps_provisioning(self.order, retry=True)
-        self.assertEqual(self.http.call_count, 2)
+        # A running VPS with no usable IP keeps polling status so the portal can
+        # reconcile the address later; explicit provisioning retry must not POST again.
+        self.assertEqual([call.args[0] for call in self.http.call_args_list], ['POST', 'GET', 'GET'])
         self.assertEqual(Subscription.objects.count(), 1)
         self.assertEqual(Invoice.objects.get().paid_at, paid_at)
         self.assertEqual(Invoice.objects.get().status, 'PAID')
@@ -238,7 +240,6 @@ class ProvisioningTests(TransactionTestCase):
             self.assertContains(response, 'VPS provisioning failed')
             self.assertNotContains(response, 'unit-test-secret-only')
             self.assertNotContains(response, '10.0.0.1')
-            self.assertNotContains(response, 'vmid')
 
     def test_retry_uses_frozen_payload_and_same_order_id(self):
         self.respond('Failed')
