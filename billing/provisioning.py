@@ -60,11 +60,12 @@ def _claim(order_id, *, sync, retry):
         payload = order.provisioning_payload
         if not sync and not payload:
             plan = order.plan
-            if not settings.PROVISIONING_DEFAULT_OS.strip():
-                raise ValidationError('A server-side default OS must be configured.')
+            operating_system = (order.operating_system or '').strip()
+            if operating_system not in Order.OperatingSystem.values:
+                raise ValidationError('The order operating system is not supported.')
             payload = {'order_id': order.pk, 'name': f'customer-{order.customer_id}-vps-{order.pk}',
                        'cpu': plan.cpu, 'ram': plan.ram, 'storage': plan.storage,
-                       'os': settings.PROVISIONING_DEFAULT_OS, 'billing_cycle': order.billing_cycle,
+                       'os': operating_system, 'billing_cycle': order.billing_cycle,
                        'plan': plan.name}
             if bool(order.ssh_username) != bool(order.ssh_public_key):
                 raise ValidationError('SSH access configuration is incomplete.')
