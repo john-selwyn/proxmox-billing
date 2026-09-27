@@ -78,6 +78,10 @@ class Order(models.Model):
         MONTHLY = "MONTHLY", "Monthly"
         YEARLY = "YEARLY", "Yearly"
 
+    class OperatingSystem(models.TextChoices):
+        UBUNTU_26_04 = "Ubuntu 26.04", "Ubuntu 26.04 LTS"
+        DEBIAN_13 = "Debian 13", "Debian 13"
+
     customer = models.ForeignKey(
         Customer,
         on_delete=models.PROTECT,
@@ -93,6 +97,12 @@ class Order(models.Model):
     billing_cycle = models.CharField(
         max_length=20,
         choices=BillingCycle.choices
+    )
+
+    operating_system = models.CharField(
+        max_length=50,
+        choices=OperatingSystem.choices,
+        default=OperatingSystem.UBUNTU_26_04,
     )
 
     amount = models.DecimalField(
