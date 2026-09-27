@@ -12,13 +12,13 @@
 </ul>
 </section>
 <section class="card">
-<h2>Choose your billing cycle</h2>
+<h2>Configure your VPS</h2>
 <p>Monthly: <strong>PHP {{ plan.monthly_price }}</strong>
 <br>Yearly: <strong>PHP {{ plan.yearly_price }}</strong>
 </p>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button>Review order &rarr;</button>
 </form>
-<p class="muted">The SSH public key will be installed in your VPS at provisioning time. Keep the matching private key only on your own device.</p>
+<p class="muted">Choose Ubuntu 26.04 LTS or Debian 13. Your SSH public key will be installed during provisioning. Keep the matching private key only on your own device.</p>
 <p class="muted">You can review the total before confirming.</p>
 <a href="{% url 'plans' %}">Back to plans</a>
 </section>
