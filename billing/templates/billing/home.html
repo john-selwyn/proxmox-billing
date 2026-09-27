@@ -1,30 +1,42 @@
-{% extends 'billing/base.html' %}{% block title %}Welcome{% endblock %}{% block content %}
+{% extends 'billing/base.html' %}{% block title %}VPS hosting{% endblock %}{% block content %}
 <section class="hero">
-<div>
-<p class="eyebrow">YOUR HOSTING, ORGANIZED</p>
-<h1>A clear view of your VPS billing.</h1>
-<p class="lead">Choose your resources, review your order, and keep your invoices in one place.</p>
-<div class="actions">{% if user.is_authenticated %}<a class="button" href="{% url 'dashboard' %}">Go to dashboard &rarr;</a>
-<a href="{% url 'plans' %}">Explore plans</a>{% else %}<a class="button" href="{% url 'register' %}">Create your account &rarr;</a>
-<a href="{% url 'login' %}">Sign in</a>{% endif %}</div>
+<div class="hero-copy">
+<p class="eyebrow">SELF-SERVICE VPS HOSTING</p>
+<h1>Your server, ready to manage from one place.</h1>
+<p class="lead">Deploy a VPS, track provisioning, manage power, view billing, and connect securely with your own SSH key.</p>
+<div class="actions">
+{% if user.is_authenticated %}
+<a class="button" href="{% url 'dashboard' %}">Open dashboard &rarr;</a>
+<a class="text-link" href="{% url 'plans' %}">View VPS plans</a>
+{% else %}
+<a class="button" href="{% url 'register' %}">Create your account &rarr;</a>
+<a class="text-link" href="{% url 'login' %}">Sign in</a>
+{% endif %}
+</div>
+<div class="hero-points" aria-label="Portal capabilities">
+<span>Automated provisioning</span>
+<span>SSH key access</span>
+<span>Power controls</span>
+</div>
 </div>
 <aside class="card hero-card">
-<p class="eyebrow">SIMPLE FROM THE START</p>
-<h2>Your next VPS starts here.</h2>
-<ol class="steps">
-<li>
-<strong>Choose a plan</strong>
-<span>Find the resources and billing cycle that fit.</span>
-</li>
-<li>
-<strong>Review your order</strong>
-<span>See the full amount before you confirm.</span>
-</li>
-<li>
-<strong>Keep track</strong>
-<span>View your order and pending invoice anytime.</span>
-</li>
-</ol>
-<p class="notice">Manage your orders and track payment status in one place.</p>
+<div class="terminal-top"><span></span><span></span><span></span><small>customer-vps</small></div>
+<div class="terminal">
+<p><span class="terminal-prompt">$</span> ssh vpsuser@your-server-ip</p>
+<p class="terminal-success">Connected securely.</p>
+<div class="terminal-grid">
+<div><span>Status</span><strong>Running</strong></div>
+<div><span>Authentication</span><strong>SSH key</strong></div>
+<div><span>Management</span><strong>Customer portal</strong></div>
+<div><span>Billing</span><strong>Centralized</strong></div>
+</div>
+</div>
 </aside>
-</section>{% endblock %}
+</section>
+
+<section class="feature-strip" aria-label="VPS customer workflow">
+<article class="feature-item"><span class="feature-number">01</span><div><h2>Choose resources</h2><p>Select the VPS plan and billing cycle that match your workload.</p></div></article>
+<article class="feature-item"><span class="feature-number">02</span><div><h2>Provision securely</h2><p>Supply your public SSH key and follow provisioning progress from the portal.</p></div></article>
+<article class="feature-item"><span class="feature-number">03</span><div><h2>Manage the server</h2><p>See IP details, power state, invoices, and connection information in one place.</p></div></article>
+</section>
+{% endblock %}
