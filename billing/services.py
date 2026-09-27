@@ -19,9 +19,14 @@ def plan_amount(plan, cycle):
 
 @transaction.atomic
 def confirm_order(*, customer, plan_id, cycle, checkout_token, reviewed_amount,
+                  operating_system=Order.OperatingSystem.UBUNTU_26_04,
                   ssh_username="", ssh_public_key=""):
+    if operating_system not in Order.OperatingSystem.values:
+        raise ValidationError("Choose a supported operating system.")
     existing = Order.objects.filter(checkout_token=checkout_token, customer=customer).first()
     if existing:
+        if existing.operating_system != operating_system:
+            raise ValidationError("This checkout operating system does not match the existing order.")
         if ssh_username and (
             existing.ssh_username != ssh_username or existing.ssh_public_key != ssh_public_key
         ):
@@ -36,6 +41,7 @@ def confirm_order(*, customer, plan_id, cycle, checkout_token, reviewed_amount,
         checkout_token=checkout_token,
         defaults={'customer': customer, 'plan': plan, 'billing_cycle': cycle,
                   'amount': amount, 'status': Order.Status.PENDING,
+                  'operating_system': operating_system,
                   'ssh_username': ssh_username, 'ssh_public_key': ssh_public_key},
     )
     if order.customer_id != customer.pk:
