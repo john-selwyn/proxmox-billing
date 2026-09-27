@@ -118,7 +118,10 @@ class PortalTests(TestCase):
         self.assertEqual(order.ssh_public_key, TEST_SSH_PUBLIC_KEY)
 
     def test_debian_operating_system_is_frozen_on_order(self):
-        response = self.checkout(operating_system='Debian 13')
+        review = self.review(operating_system='Debian 13')
+        self.assertEqual(review.status_code, 200)
+        token = review.context['checkout_token']
+        response = self.client.post(reverse('order_confirm'), {'checkout_token': token})
         self.assertEqual(response.status_code, 302)
         order = Order.objects.get(customer=self.user.customer_profile)
         self.assertEqual(order.operating_system, 'Debian 13')
