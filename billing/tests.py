@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.db import IntegrityError
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -280,6 +280,7 @@ class PortalTests(TestCase):
         client.logout()
         self.assertEqual(client.post(reverse('register'), {}).status_code, 403)
 
+    @override_settings(XENDIT_SECRET_API_KEY='', XENDIT_WEBHOOK_TOKEN='', XENDIT_BUSINESS_ID='', XENDIT_PUBLIC_BASE_URL='')
     def test_pages_render_and_empty_states(self):
         for name in ['home', 'dashboard', 'my_vps', 'plans', 'orders', 'invoices', 'account']:
             with self.subTest(page=name):
