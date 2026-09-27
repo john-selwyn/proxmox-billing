@@ -226,6 +226,7 @@ def select_plan(request, plan_id):
     form = BillingCycleForm(request.POST if request.method == 'POST' else None)
     if request.method == 'POST' and form.is_valid():
         cycle = form.cleaned_data['billing_cycle']
+        operating_system = form.cleaned_data['operating_system']
         ssh_public_key = form.cleaned_data['ssh_public_key']
         ssh_username = 'vpsuser'
         try:
@@ -235,10 +236,11 @@ def select_plan(request, plan_id):
         else:
             token = signing.dumps({'user': request.user.pk, 'plan': plan.pk,
                 'cycle': cycle, 'amount': str(amount), 'key': str(uuid.uuid4()),
+                'os': operating_system,
                 'ssh_username': ssh_username, 'ssh_public_key': ssh_public_key}, salt=CHECKOUT_SALT)
             return render(request, 'billing/review_order.html', {
                 'plan': plan, 'cycle': cycle, 'amount': amount, 'checkout_token': token,
-                'ssh_username': ssh_username,
+                'operating_system': operating_system, 'ssh_username': ssh_username,
             })
     return render(request, 'billing/select_plan.html', {'plan': plan, 'form': form},
                   status=400 if request.method == 'POST' else 200)
@@ -258,6 +260,7 @@ def order_confirm(request):
     try:
         order = confirm_order(customer=customer_for(request.user), plan_id=data['plan'],
             cycle=data['cycle'], checkout_token=data['key'], reviewed_amount=data['amount'],
+            operating_system=data['os'],
             ssh_username=data['ssh_username'], ssh_public_key=data['ssh_public_key'])
     except (ValidationError, VPSPlan.DoesNotExist) as exc:
         error = 'This plan is no longer available. Please choose another plan.'
