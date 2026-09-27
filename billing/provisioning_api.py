@@ -62,7 +62,7 @@ def parse_response(data, *, order_id):
         raise ProvisioningAPIError('INVALID_RESPONSE')
 
     ip_address = data.get('ip_address', '')
-    if ip_address in (None, '0.0.0.0'):
+    if ip_address in ('', None, '0.0.0.0'):
         ip_address = ''
     elif not isinstance(ip_address, str) or len(ip_address) > 45:
         raise ProvisioningAPIError('INVALID_RESPONSE')
