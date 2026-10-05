@@ -164,6 +164,13 @@ XENDIT_WEBHOOK_TOKEN = os.getenv("XENDIT_WEBHOOK_TOKEN", "")
 XENDIT_BUSINESS_ID = os.getenv("XENDIT_BUSINESS_ID", "")
 XENDIT_PUBLIC_BASE_URL = os.getenv("XENDIT_PUBLIC_BASE_URL", "")
 
+# Hestia package discovery. Keep the password in the server's untracked .env.
+HESTIA_API_URL = os.getenv("HESTIA_API_URL", "")
+HESTIA_API_USER = os.getenv("HESTIA_API_USER", "")
+HESTIA_API_PASSWORD = os.getenv("HESTIA_API_PASSWORD", "")
+HESTIA_API_VERIFY_SSL = os.getenv("HESTIA_API_VERIFY_SSL", "False").lower() == "true"
+HESTIA_API_TIMEOUT = float(os.getenv("HESTIA_API_TIMEOUT", "5"))
+
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration

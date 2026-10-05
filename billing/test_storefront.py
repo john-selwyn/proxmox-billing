@@ -1,4 +1,5 @@
 from decimal import Decimal
+from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
 from .models import VPSPlan, Order, Invoice
@@ -33,9 +34,23 @@ class StorefrontTests(TestCase):
 
     def test_web_hosting_does_not_offer_checkout(self):
         response = self.client.get(reverse('web_hosting'))
-        self.assertContains(response, 'Coming soon')
+        self.assertContains(response, 'Starter')
+        self.assertContains(response, '₱149.00')
         self.assertNotContains(response, '<form')
         self.assertEqual(self.client.post(reverse('web_hosting')).status_code, 405)
+
+    @patch('billing.hestia.requests.post')
+    def test_web_hosting_uses_live_hestia_package_limits(self, post):
+        post.return_value.json.return_value = {
+            'starter': {'DISK_QUOTA': '4096', 'BANDWIDTH': '40960', 'WEB_DOMAINS': '2', 'DATABASES': '3', 'CRON_JOBS': '6', 'MAIL_ACCOUNTS': '1'},
+        }
+        post.return_value.raise_for_status.return_value = None
+        with self.settings(HESTIA_API_URL='https://hestia.test/api/', HESTIA_API_USER='selwyn', HESTIA_API_PASSWORD='secret'):
+            response = self.client.get(reverse('web_hosting'))
+        self.assertContains(response, '4 GB')
+        self.assertContains(response, '40 GB')
+        self.assertContains(response, 'Live package limits from Hestia')
+        post.assert_called_once()
 
     def test_empty_catalog(self):
         VPSPlan.objects.update(is_active=False)

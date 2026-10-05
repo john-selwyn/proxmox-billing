@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 from .xendit import configured as xendit_configured
 from .forms import AccountForm, BillingCycleForm, RegistrationForm
+from .hestia import list_packages
 from .models import Customer, Invoice, Order, Subscription, VPSPlan, VPSPowerOperation
 from .provisioning import get_vps_provisioning_status
 from .services import confirm_order, plan_amount
@@ -33,7 +34,7 @@ def home(request):
 
 @require_GET
 def web_hosting(request):
-    return render(request, 'billing/web_hosting.html')
+    return render(request, 'billing/web_hosting.html', {'packages': list_packages()})
 
 
 @require_http_methods(['GET', 'POST'])
