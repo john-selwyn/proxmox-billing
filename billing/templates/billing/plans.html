@@ -2,6 +2,7 @@
 <p class="eyebrow">FIND YOUR FIT</p>
 <h1>Resources for your next project.</h1>
 <p class="lead">Choose a VPS plan, then select monthly or yearly billing. All prices in PHP.</p>
+{% if not user.is_authenticated %}<p class="notice">Browse freely. Sign in when you are ready to choose a billing cycle and place your order.</p>{% endif %}
 <div class="grid plans">{% for plan in plans %}
 <article class="card plan">
 <h2>{{ plan.name }}</h2>
@@ -17,7 +18,7 @@
 <li>
 <strong>{{ plan.storage }} GB</strong> storage</li>
 </ul>
-<a class="button" href="{% url 'select_plan' plan.pk %}">Select plan &rarr;</a>
+<a class="button" href="{% url 'select_plan' plan.pk %}">Choose this plan</a>
 </article>{% empty %}
 <div class="card empty">
 <h2>New plans are on the way.</h2>

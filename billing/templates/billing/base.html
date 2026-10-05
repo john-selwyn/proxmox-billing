@@ -4,20 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>{% block title %}Customer portal{% endblock %} | VPS Control Panel</title>
+<title>{% block title %}Customer portal{% endblock %} | ICT Ventures</title>
 <link rel="stylesheet" href="{% static 'billing/portal.css' %}">
 <link rel="stylesheet" href="{% static 'billing/portal-modern.css' %}">
+<link rel="stylesheet" href="{% static 'billing/storefront.css' %}">
+<link rel="icon" type="image/svg+xml" href="{% static 'billing/favicon.svg' %}">
+<meta name="description" content="Explore ICT Ventures VPS and web hosting, and manage your services and invoices.">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
 <div class="nav-wrap">
-<a class="brand" href="{% url 'home' %}" aria-label="VPS Control Panel home">
-<span class="brand-icon" aria-hidden="true">V</span>
-<span class="brand-copy"><strong>VPS Control Panel</strong><small>Cloud services</small></span>
+<a class="brand" href="{% url 'home' %}" aria-label="ICT Ventures home">
+<span class="brand-icon" aria-hidden="true">+</span>
+<span class="brand-copy"><strong>ICT Ventures</strong><small>Cloud services</small></span>
 </a>
 <nav aria-label="Main navigation">
 {% with current=request.resolver_match.url_name %}
+<a class="{% if current == 'web_hosting' %}active{% endif %}" href="{% url 'web_hosting' %}">Web hosting</a>
 {% if user.is_authenticated %}
 <a class="{% if current == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a>
 <a class="{% if current == 'my_vps' or current == 'vps_detail' %}active{% endif %}" href="{% url 'my_vps' %}">My VPS</a>
@@ -27,6 +31,7 @@
 <a class="{% if current == 'account' %}active{% endif %}" href="{% url 'account' %}">Account</a>
 <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-button" type="submit">Logout</button></form>
 {% else %}
+<a class="{% if current == 'plans' %}active{% endif %}" href="{% url 'plans' %}">VPS Plans</a>
 <a class="{% if current == 'login' %}active{% endif %}" href="{% url 'login' %}">Login</a>
 <a class="button small" href="{% url 'register' %}">Create account</a>
 {% endif %}
@@ -39,7 +44,7 @@
 {% block content %}{% endblock %}
 </main>
 <footer class="container site-footer">
-<div><strong>VPS Control Panel</strong><span>Servers, billing &amp; account management</span></div>
+<div><strong>ICT Ventures</strong><span>Servers, billing &amp; account management</span></div>
 <span>Secure customer access &middot; SSH key authentication</span>
 </footer>
 </body>
