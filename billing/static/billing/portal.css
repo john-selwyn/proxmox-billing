@@ -450,3 +450,19 @@ footer {
 
 }
 
+
+/* ICT Ventures storefront and shared brand */
+a {color:#00776f}.brand-icon,.button,button {background:#00776f;border-color:#00776f}
+.button:hover,button:hover {background:#005f59;border-color:#005f59}
+.eyebrow {font-size:.8rem;color:#49646a}.brand {color:#19222b}
+.store-hero {display:grid;grid-template-columns:1.35fr 1fr;gap:4rem;background:#19222b;color:white;padding:3.5rem;border-radius:20px;align-items:center}
+.store-hero h1 {font-size:clamp(2.4rem,4.6vw,4rem);line-height:1.12;letter-spacing:-.045em}
+.store-hero em {font-style:normal;color:#66ded0}.store-hero .lead {color:#d2dee2}.store-hero .eyebrow {color:#86d8cf}
+.actions {flex-wrap:wrap}.button.secondary {background:transparent;color:#00776f;border-color:#9abcb9}.store-hero .secondary {color:white;border-color:#78938f}
+.service-index {border-left:1px solid #536368;padding-left:2rem}.service-index>div+div {border-top:1px solid #536368;padding-top:1.5rem;margin-top:1.5rem}.service-index p {color:#d2dee2}.service-index a {color:#86e4d7;text-decoration:underline;text-underline-offset:4px}
+.store-section {padding:3.5rem 0 1rem}.store-section>h2 {font-size:2rem}.service-grid {display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}.service-grid h3 {font-size:1.5rem}.service-grid ul {padding-left:1.25rem;margin-bottom:2rem}.service-grid li {margin:.6rem 0}.service-number {display:block;color:#00776f;font-size:2rem;font-weight:700;margin-bottom:1rem}
+.journey {display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;padding-left:1.4rem}.journey li {padding-left:.5rem}.journey strong {font-size:1.1rem}.journey p {margin-top:.6rem;color:#526174}
+.faq {max-width:850px}details {border-bottom:1px solid #cedbdc;padding:1.1rem 0}summary {cursor:pointer;font-weight:650}details p {margin:1rem 0 0}.portal-banner {margin-top:3rem;padding:2rem;background:#e2f1ef;border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:1.5rem}.portal-banner p {margin:0}.availability {display:inline-block;padding:.5rem 1rem;background:#e2f1ef;color:#185e57;border-radius:6px}.hosting-note {margin-top:1.5rem}
+:focus-visible {outline:3px solid #008e84;outline-offset:4px}.store-hero :focus-visible {outline-color:#86e4d7}
+@media(max-width:900px) {.store-hero {grid-template-columns:1fr;padding:2rem;gap:2rem}.service-index {border-left:0;border-top:1px solid #536368;padding:2rem 0 0}.nav-wrap {flex-wrap:wrap}.journey {grid-template-columns:1fr;gap:1rem}}
+@media(max-width:600px) {.service-grid {grid-template-columns:1fr}.store-hero {padding:1.5rem}.container {padding:28px 18px}.nav-wrap {padding:18px}.portal-banner {align-items:flex-start;flex-direction:column}.store-section {padding-top:2.5rem}nav {gap:14px}.actions {gap:14px}}

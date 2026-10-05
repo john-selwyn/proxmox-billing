@@ -1,30 +1,16 @@
-{% extends 'billing/base.html' %}{% block title %}Welcome{% endblock %}{% block content %}
-<section class="hero">
-<div>
-<p class="eyebrow">YOUR HOSTING, ORGANIZED</p>
-<h1>A clear view of your VPS billing.</h1>
-<p class="lead">Choose your resources, review your order, and keep your invoices in one place.</p>
-<div class="actions">{% if user.is_authenticated %}<a class="button" href="{% url 'dashboard' %}">Go to dashboard &rarr;</a>
-<a href="{% url 'plans' %}">Explore plans</a>{% else %}<a class="button" href="{% url 'register' %}">Create your account &rarr;</a>
-<a href="{% url 'login' %}">Sign in</a>{% endif %}</div>
-</div>
-<aside class="card hero-card">
-<p class="eyebrow">SIMPLE FROM THE START</p>
-<h2>Your next VPS starts here.</h2>
-<ol class="steps">
-<li>
-<strong>Choose a plan</strong>
-<span>Find the resources and billing cycle that fit.</span>
-</li>
-<li>
-<strong>Review your order</strong>
-<span>See the full amount before you confirm.</span>
-</li>
-<li>
-<strong>Keep track</strong>
-<span>View your order and pending invoice anytime.</span>
-</li>
-</ol>
-<p class="notice">Manage your orders and track payment status in one place.</p>
-</aside>
-</section>{% endblock %}
+{% extends 'billing/base.html' %}
+{% block title %}VPS & web hosting{% endblock %}
+{% block content %}
+<section class="store-hero">
+<div><p class="eyebrow">ICT VENTURES · HOSTING</p><h1>A home for your website.<br><em>Room for your next idea.</em></h1>
+<p class="lead">Start with web hosting for your business website, or choose a VPS for applications that need their own server environment.</p>
+<div class="actions"><a class="button" href="{% url 'plans' %}">Explore VPS plans</a><a class="button secondary" href="{% url 'web_hosting' %}">Explore web hosting</a></div></div>
+<aside class="service-index" aria-label="Hosting options"><div><span class="eyebrow">01 / VIRTUAL SERVERS</span><h2>Your environment.<br>Your configuration.</h2><p>Choose the CPU, memory and storage allocation that fits your application.</p><a href="{% url 'plans' %}">Compare VPS resources</a></div><div><span class="eyebrow">02 / WEB HOSTING</span><h2>Focus on your website.</h2><p>A simpler starting point for websites that do not need a whole virtual server.</p><a href="{% url 'web_hosting' %}">Discover web hosting</a></div></aside>
+</section>
+<section class="store-section" aria-labelledby="choose"><p class="eyebrow">TWO WAYS TO GET ONLINE</p><h2 id="choose">Choose the right foundation.</h2>
+<div class="service-grid"><article class="card"><span class="service-number">01</span><h3>VPS hosting</h3><p>For developers and teams who need to configure a server for their applications.</p><ul><li>Compare available vCPU, RAM and storage</li><li>Choose monthly or yearly billing</li><li>Track orders and invoices in your account</li></ul><a class="button" href="{% url 'plans' %}">View available plans</a></article>
+<article class="card"><span class="service-number">02</span><h3>Web hosting</h3><p>For business websites and straightforward web projects that share a hosting environment.</p><ul><li>A website-focused hosting option</li><li>Less server administration for site owners</li><li>Packages and ordering coming soon</li></ul><a class="button secondary" href="{% url 'web_hosting' %}">Learn about web hosting</a></article></div></section>
+<section class="store-section"><p class="eyebrow">FROM PLAN TO PORTAL</p><h2>Your next VPS, step by step.</h2><ol class="journey"><li><strong>Find your resources</strong><p>Browse available plans and compare monthly and yearly prices.</p></li><li><strong>Review your order</strong><p>Sign in, choose your billing cycle and confirm the amount.</p></li><li><strong>Manage your service</strong><p>View your invoice, payment status and provisioning progress in the customer portal.</p></li></ol></section>
+<section class="store-section faq"><h2>A few things to know.</h2><details><summary>Which hosting option should I choose?</summary><p>Web hosting suits a conventional website without custom server requirements. A VPS gives you a separate server environment for applications that need more configuration. Check the plan resources against your application requirements.</p></details><details><summary>Can I see VPS prices without an account?</summary><p>Yes. Browse the VPS plans first. You will need to sign in before selecting a billing cycle and placing an order.</p></details><details><summary>Can I order shared web hosting today?</summary><p>Web hosting packages are being prepared. Online ordering is not available yet.</p></details><details><summary>Where do I manage existing orders?</summary><p>Sign in to your customer dashboard to see your orders, invoices and account details.</p></details></section>
+<section class="portal-banner"><div><h2>Already have an account?</h2><p>Your orders and invoices are in your customer portal.</p></div><a class="button" href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'login' %}{% endif %}">Open customer portal</a></section>
+{% endblock %}

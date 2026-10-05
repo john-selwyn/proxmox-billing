@@ -28,6 +28,11 @@ def home(request):
     return render(request, 'billing/home.html')
 
 
+@require_GET
+def web_hosting(request):
+    return render(request, 'billing/web_hosting.html')
+
+
 @require_http_methods(['GET', 'POST'])
 def register(request):
     if request.user.is_authenticated:
@@ -59,7 +64,6 @@ def dashboard(request):
     })
 
 
-@login_required
 @require_GET
 def plans(request):
     return render(request, 'billing/plans.html', {
