@@ -1,8 +1,72 @@
 {% extends 'billing/base.html' %}
 {% block title %}Web hosting{% endblock %}
 {% block content %}
-<section class="store-section"><p class="eyebrow">ICT VENTURES / WEB HOSTING</p><h1>Bring your business online.</h1><p class="lead">Choose a Hestia-powered package for business pages, portfolios and everyday web projects.</p>{% if packages.0.connected %}<p class="availability">Live package limits from Hestia</p>{% else %}<p class="availability">Package limits are shown from the current configuration</p>{% endif %}</section>
-<section class="service-grid hosting-plans" aria-label="Web hosting packages">{% for package in packages %}<article class="card hosting-plan{% if package.slug == 'business' %} featured{% endif %}"><p class="eyebrow">{% if package.slug == 'business' %}MOST POPULAR{% else %}WEB HOSTING{% endif %}</p><h2>{{ package.name }}</h2><p class="price">₱{{ package.monthly_price }}<small> / month</small></p><p class="muted">₱{{ package.yearly_price }} / year</p><ul><li><strong>{{ package.disk }}</strong> storage</li><li><strong>{{ package.bandwidth }}</strong> bandwidth</li><li><strong>{{ package.domains }}</strong> website domain{{ package.domains|pluralize }}</li><li><strong>{{ package.databases }}</strong> database{{ package.databases|pluralize }}</li><li><strong>{{ package.cron_jobs }}</strong> cron jobs</li></ul><p class="muted">Email accounts: {{ package.mail_accounts }}</p><a class="button secondary" href="{% url 'register' %}">Create an account</a></article>{% endfor %}</section>
-<div class="service-grid"><section class="card"><h2>Start with the website.</h2><p>Shared hosting gives you a website-focused environment managed through Hestia. It is a practical fit when you do not need to administer an entire virtual server.</p><h3>What happens next</h3><ul><li>Create your customer account.</li><li>Choose a package and provide your domain.</li><li>We verify payment and create the Hestia hosting account.</li></ul><p>Online web-hosting checkout will be connected to the verified payment flow next.</p></section><section class="card"><p class="eyebrow">NEED A CUSTOM ENVIRONMENT?</p><h2>Explore a VPS.</h2><p>If your project needs its own server configuration, compare our available VPS plans and resources.</p><a class="button" href="{% url 'plans' %}">View VPS plans</a></section></div>
-<section class="store-section faq"><h2>Planning your website</h2><details><summary>Do I need a domain name?</summary><p>A domain gives visitors an address for your website. Once hosting is ready, its DNS records must point to the hosting destination. Domain registration is separate unless your chosen package explicitly includes it.</p></details><details><summary>Will my application work on shared hosting?</summary><p>Check its runtime, database and background-process requirements against the package features before ordering. Custom server software may require a VPS.</p></details></section>
+<section class="hosting-hero">
+  <div class="hosting-hero-copy">
+    <p class="eyebrow">ICT+ VENTURES / HESTIA HOSTING</p>
+    <h1>Everything your website needs. Nothing it doesn't.</h1>
+    <p class="lead">Choose a clear, website-focused package for your business page, portfolio or everyday web project.</p>
+    {% if packages.0.connected %}<p class="availability"><span class="status-dot" aria-hidden="true"></span> Live package limits from Hestia</p>{% else %}<p class="availability"><span class="status-dot" aria-hidden="true"></span> Package limits from the current catalog</p>{% endif %}
+  </div>
+  <aside class="hosting-hero-card">
+    <span class="eyebrow">A GOOD FIT FOR</span>
+    <strong>Business websites</strong>
+    <strong>Landing pages</strong>
+    <strong>Portfolios and blogs</strong>
+    <p>Need custom server software or more control? A VPS may be the better fit.</p>
+    <a class="text-link" href="{% url 'plans' %}">Compare VPS plans <span aria-hidden="true">→</span></a>
+  </aside>
+</section>
+
+<section class="store-section plans-section" aria-labelledby="hosting-plans-heading">
+  <div class="section-head">
+    <div><p class="eyebrow">CHOOSE YOUR PACKAGE</p><h2 id="hosting-plans-heading">A simple place to start.</h2></div>
+    <p class="section-intro">Limits are synced from Hestia so the storefront reflects the packages you actually run.</p>
+  </div>
+  <div class="hosting-plans" aria-label="Web hosting packages">
+    {% for package in packages %}
+    <article class="hosting-plan{% if package.slug == 'business' %} featured{% endif %}">
+      <div class="plan-top"><span class="plan-label">{% if package.slug == 'business' %}MOST POPULAR{% else %}WEB HOSTING{% endif %}</span>{% if package.slug == 'business' %}<span class="plan-badge">Best value</span>{% endif %}</div>
+      <h2>{{ package.name }}</h2>
+      <p class="plan-fit">{% if package.slug == 'starter' %}For a focused personal or small business site.{% elif package.slug == 'business' %}For a growing business with more than one website.{% else %}For teams managing a larger web presence.{% endif %}</p>
+      <p class="price">₱{{ package.monthly_price }}<small> / month</small></p>
+      <p class="price-note">or ₱{{ package.yearly_price }} / year</p>
+      <ul class="plan-features">
+        <li><strong>{{ package.disk }}</strong> storage</li>
+        <li><strong>{{ package.bandwidth }}</strong> bandwidth</li>
+        <li><strong>{{ package.domains }}</strong> website domain{{ package.domains|pluralize }}</li>
+        <li><strong>{{ package.databases }}</strong> database{{ package.databases|pluralize }}</li>
+        <li><strong>{{ package.cron_jobs }}</strong> cron job{{ package.cron_jobs|pluralize }}</li>
+      </ul>
+      <p class="plan-meta">{{ package.mail_accounts }} email account{{ package.mail_accounts|pluralize }}</p>
+      <a class="button{% if package.slug != 'business' %} secondary{% endif %}" href="{% url 'register' %}">Create an account</a>
+    </article>
+    {% empty %}<p class="empty-state">No web-hosting packages are currently available.</p>{% endfor %}
+  </div>
+</section>
+
+<div class="service-grid hosting-details">
+  <section class="card detail-card">
+    <p class="eyebrow">MANAGED THROUGH HESTIA</p>
+    <h2>Start with the website.</h2>
+    <p>Shared hosting gives you a website-focused environment managed through Hestia. It is a practical fit when you do not need to administer an entire virtual server.</p>
+    <h3>What happens next</h3>
+    <ol class="compact-list"><li>Create your customer account.</li><li>Choose a package and provide your domain.</li><li>We verify payment and create the Hestia hosting account.</li></ol>
+    <p class="muted">Online web-hosting checkout will be connected to the verified payment flow next.</p>
+  </section>
+  <section class="card detail-card detail-card-accent">
+    <p class="eyebrow">NEED A CUSTOM ENVIRONMENT?</p>
+    <h2>Explore a VPS.</h2>
+    <p>If your project needs its own server configuration, compare available resources and choose the environment that fits.</p>
+    <a class="button" href="{% url 'plans' %}">View VPS plans</a>
+  </section>
+</div>
+
+<section class="store-section faq" aria-labelledby="planning-heading">
+  <div class="section-head"><div><p class="eyebrow">PLANNING YOUR WEBSITE</p><h2 id="planning-heading">A few useful answers.</h2></div></div>
+  <div class="faq-list">
+    <details><summary>Do I need a domain name?</summary><p>A domain gives visitors an address for your website. Once hosting is ready, its DNS records must point to the hosting destination. Domain registration is separate unless your chosen package explicitly includes it.</p></details>
+    <details><summary>Will my application work on shared hosting?</summary><p>Check its runtime, database and background-process requirements against the package features before ordering. Custom server software may require a VPS.</p></details>
+  </div>
+</section>
 {% endblock %}
