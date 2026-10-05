@@ -58,7 +58,7 @@ class PortalTests(TestCase):
 
     def test_anonymous_pages_are_protected(self):
         self.client.logout()
-        for name, args in [('dashboard', []), ('plans', []), ('orders', []),
+        for name, args in [('dashboard', []), ('orders', []),
             ('invoices', []), ('account', []), ('select_plan', [self.plan.pk]),
             ('invoice', [1]), ('order_detail', [1]), ('order_confirm', [])]:
             with self.subTest(page=name):

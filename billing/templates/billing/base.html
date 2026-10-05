@@ -3,18 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Customer portal{% endblock %} | VPS Billing</title>
+<title>{% block title %}Customer portal{% endblock %} | ICT Ventures</title>
 <link rel="stylesheet" href="{% static 'billing/portal.css' %}">
+<meta name="description" content="Explore ICT Ventures VPS and web hosting. Compare services and manage your VPS orders and invoices in one account.">
+<link rel="icon" type="image/svg+xml" href="{% static 'billing/favicon.svg' %}">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header>
 <div class="nav-wrap">
 <a class="brand" href="{% url 'home' %}">
-<span class="brand-icon">V</span> VPS Billing</a>
+<span class="brand-icon">+</span> ICT Ventures</a>
 <nav aria-label="Main navigation">
+<a href="{% url 'plans' %}">VPS plans</a>
+<a href="{% url 'web_hosting' %}">Web hosting</a>
 {% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Dashboard</a>
-<a href="{% url 'plans' %}">VPS Plans</a>
+
 <a href="{% url 'orders' %}">Orders</a>
 <a href="{% url 'invoices' %}">Invoices</a>
 <a href="{% url 'account' %}">Account</a>
@@ -27,7 +31,7 @@
 </header>
 <main id="main" class="container">{% for message in messages %}
 <div class="notice" role="status">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</main>
-<footer class="container">VPS Billing <span>Customer &amp; billing portal</span>
+<footer class="container">ICT Ventures <span>VPS &amp; web hosting</span>
 </footer>
 </body>
 </html>
