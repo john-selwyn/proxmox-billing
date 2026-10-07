@@ -46,7 +46,9 @@ def _claim(order_id, *, sync, retry):
     with transaction.atomic():
         order = Order.objects.select_for_update().get(pk=order_id)
         require_paid(order)
-        if order.status == Order.Status.ACTIVE and (not sync or order.provisioning_ip_address):
+        if order.status == Order.Status.ACTIVE and (
+            not sync or (order.provisioning_ip_address and order.ssh_host)
+        ):
             return None
         if order.provisioning_lease and order.provisioning_started_at and order.provisioning_started_at > now - LEASE_TIME:
             return None
@@ -110,6 +112,8 @@ def _finish(order_id, lease, result=None, error=''):
             order.provisioning_progress = result.progress
             order.provisioning_step = result.current_step
             order.provisioning_ip_address = result.ip_address or order.provisioning_ip_address
+            if result.ssh_host is not None:
+                order.ssh_host, order.ssh_port = result.ssh_host, result.ssh_port
             if result.status == Order.Status.ACTIVE:
                 now = timezone.now()
                 subscription, created = Subscription.objects.get_or_create(order=order, defaults={
@@ -125,7 +129,7 @@ def _finish(order_id, lease, result=None, error=''):
         order.save(update_fields=['status', 'provisioning_status', 'provisioning_error',
             'provisioning_vps_id', 'provisioning_vmid', 'provisioning_progress',
             'provisioning_step', 'provisioning_ip_address', 'provisioning_lease',
-            'provisioning_checked_at', 'updated_at'])
+            'provisioning_checked_at', 'ssh_host', 'ssh_port', 'updated_at'])
     return order
 
 

@@ -5,6 +5,7 @@ from urllib.parse import urlsplit
 import requests
 from django.conf import settings
 from django.views.decorators.debug import sensitive_variables
+from .ssh_endpoint import parse_ssh_endpoint
 
 
 class ProvisioningAPIError(Exception):
@@ -24,6 +25,8 @@ class ProvisioningResult:
     current_step: str = ''
     ip_address: str = ''
     error: str = ''
+    ssh_host: str | None = None
+    ssh_port: int | None = None
 
 
 def parse_response(data, *, order_id):
@@ -73,9 +76,14 @@ def parse_response(data, *, order_id):
         except ValueError:
             raise ProvisioningAPIError('INVALID_RESPONSE') from None
 
+    try:
+        ssh_host, ssh_port = parse_ssh_endpoint(data)
+    except ValueError:
+        raise ProvisioningAPIError('INVALID_RESPONSE') from None
     return ProvisioningResult(
         mapped, *ids, progress=progress, current_step=current_step,
-        ip_address=ip_address, error='REMOTE_FAILED' if mapped == 'FAILED' else ''
+        ip_address=ip_address, error='REMOTE_FAILED' if mapped == 'FAILED' else '',
+        ssh_host=ssh_host, ssh_port=ssh_port,
     )
 
 

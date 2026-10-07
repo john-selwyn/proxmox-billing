@@ -22,7 +22,7 @@
       {% if order.status == 'ACTIVE' %}
       <dt>Power state</dt><dd><span id="runtime-state" class="runtime-state checking">Checking...</span></dd>
       {% endif %}
-      <dt>IP address</dt>
+      <dt>Private IP address</dt>
       <dd>{% if order.provisioning_ip_address %}<code>{{ order.provisioning_ip_address }}</code>{% else %}<span class="muted">Assigning...</span>{% endif %}</dd>
       <dt>VMID</dt><dd>{{ order.provisioning_vmid|default:"Assigning..." }}</dd>
       <dt>Operating system</dt><dd>{{ order.provisioning_payload.os|default:"Ubuntu" }}</dd>
@@ -69,6 +69,7 @@
         <button class="copy-button" type="button" data-copy="ssh -p {{ order.ssh_port }} {% if order.ssh_username %}{{ order.ssh_username }}{% else %}<username>{% endif %}@{{ order.ssh_host }}">Copy command</button>
       </div>
       <p class="muted connection-note">SSH port: {{ order.ssh_port }}</p>
+      <p class="muted">If your private key has a custom filename, add <code>-i "path-to-your-private-key"</code> to the SSH command.</p>
     {% else %}
       <div class="empty compact-empty">
         <h3>Preparing remote access</h3>
@@ -155,6 +156,9 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
       });
       if (!response.ok) throw new Error("status unavailable");
       const data = await response.json();
+      {% if not order.ssh_host %}
+      if (data.ssh_host) { window.location.reload(); return; }
+      {% endif %}
       const state = data.available ? data.state : "unknown";
 
       stateEl.textContent = state === "unknown" ? "Unavailable" : state.charAt(0).toUpperCase() + state.slice(1);

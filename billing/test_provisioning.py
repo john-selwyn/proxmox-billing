@@ -420,6 +420,36 @@ class ProvisioningTests(TransactionTestCase):
         self.assertEqual(sub.next_billing_date, due)
         self.assertEqual(Subscription.objects.count(), 1)
 
+    def test_public_endpoint_arrives_after_vm_activation_without_duplicate_billing(self):
+        self.pay()
+        self.respond('Running', ip_address='10.60.0.15', ssh_access=None)
+        active = self.sync()
+        self.assertEqual((active.status, active.ssh_host), ('ACTIVE', ''))
+        due = active.subscription.next_billing_date
+        self.respond('Running', ip_address='10.60.0.15',
+                     ssh_access={'host': 'proxmoxportal.dyndns.org', 'port': 22015})
+        ready = self.sync()
+        self.assertEqual((ready.ssh_host, ready.ssh_port), ('proxmoxportal.dyndns.org', 22015))
+        self.assertEqual(ready.subscription.next_billing_date, due)
+        self.assertEqual(Subscription.objects.count(), 1)
+        self.assertEqual(Payment.objects.count(), 1)
+        self.assertEqual(self.http.call_args.args[0], 'GET')
+
+    def test_old_provisioner_does_not_erase_manually_confirmed_endpoint(self):
+        self.pay()
+        Order.objects.filter(pk=self.order.pk).update(ssh_host='proxmoxportal.dyndns.org', ssh_port=22015)
+        self.respond('Running', ip_address='10.60.0.15')
+        ready = self.sync()
+        self.assertEqual((ready.ssh_host, ready.ssh_port), ('proxmoxportal.dyndns.org', 22015))
+
+    def test_untrusted_endpoint_is_rejected_before_activation(self):
+        self.pay()
+        self.respond('Running', ssh_access={'host': '-oProxyCommand=bad', 'port': 22015})
+        failed = self.sync()
+        self.assertEqual(failed.provisioning_error, 'INVALID_RESPONSE')
+        self.assertEqual(failed.ssh_host, '')
+        self.assertFalse(Subscription.objects.exists())
+
     def test_changed_remote_ids_are_rejected(self):
         self.pay()
         self.respond('Running', vps_id=999)

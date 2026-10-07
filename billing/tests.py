@@ -257,12 +257,15 @@ class PortalTests(TestCase):
 
     def test_vps_detail_is_scoped_and_shows_server_and_billing(self):
         mine = self.service_order()
+        mine.ssh_host = 'proxmoxportal.dyndns.org'
+        mine.ssh_port = 22015
+        mine.save(update_fields=['ssh_host', 'ssh_port'])
         other = self.service_order(customer=self.other.customer_profile, vmid='1007', ip='220.100.130.211')
         response = self.client.get(reverse('vps_detail', args=[mine.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Server overview')
         self.assertContains(response, mine.provisioning_ip_address)
-        self.assertContains(response, 'ssh vpsuser@')
+        self.assertContains(response, 'ssh -p 22015 vpsuser@proxmoxportal.dyndns.org')
         self.assertContains(response, 'Ubuntu 26.04')
         self.assertEqual(self.client.get(reverse('vps_detail', args=[other.pk])).status_code, 404)
 

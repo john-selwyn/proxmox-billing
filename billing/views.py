@@ -155,11 +155,17 @@ def vps_runtime_status(request, order_id):
     if runtime.ip_address and runtime.ip_address != order.provisioning_ip_address:
         Order.objects.filter(pk=order.pk).update(provisioning_ip_address=runtime.ip_address)
 
+    if runtime.ssh_host is not None:
+        Order.objects.filter(pk=order.pk).update(ssh_host=runtime.ssh_host, ssh_port=runtime.ssh_port)
+        order.ssh_host, order.ssh_port = runtime.ssh_host, runtime.ssh_port
+
     return JsonResponse({
         'available': True,
         'state': runtime.state,
         'vmid': order.provisioning_vmid,
         'ip_address': runtime.ip_address or order.provisioning_ip_address or '',
+        'ssh_host': order.ssh_host,
+        'ssh_port': order.ssh_port,
         'operation': operation_data,
     })
 
@@ -312,6 +318,8 @@ def provisioning_status(request, order_id):
         'vmid': order.provisioning_vmid,
         'ip_address': order.provisioning_ip_address or '',
         'error': bool(order.provisioning_error),
+        'ssh_host': order.ssh_host,
+        'ssh_port': order.ssh_port,
     })
 
 

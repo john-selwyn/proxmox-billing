@@ -42,7 +42,7 @@
 </div>
 
 {% if order.status != 'FAILED' %}
-{% if order.status != 'ACTIVE' or not order.provisioning_ip_address %}
+{% if order.status != 'ACTIVE' or not order.provisioning_ip_address or not order.ssh_host %}
 <script>
 (() => {
   const root = document.getElementById("provisioning-status");
@@ -79,7 +79,7 @@
           bar.style.width = "100%";
           bar.classList.add("complete");
         }
-        step.textContent = data.ip_address ? "VPS ready. Connection details are available." : "VPS ready. Waiting for its IP address...";
+        step.textContent = data.ssh_host ? "VPS ready. Connection details are available." : "VPS ready. Preparing remote access...";
       }
 
       if (data.status === "FAILED") {
@@ -89,8 +89,8 @@
         return;
       }
 
-      // Keep polling an ACTIVE VPS until its guest IP appears.
-      if (data.status === "ACTIVE" && data.ip_address) {
+      // A private guest IP alone is not proof that public SSH access is ready.
+      if (data.status === "ACTIVE" && data.ip_address && data.ssh_host) {
         stopped = true;
         setTimeout(() => window.location.reload(), 700);
         return;
