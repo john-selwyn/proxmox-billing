@@ -56,23 +56,23 @@
 
   <section class="card">
     <h2>Remote access</h2>
-    {% if order.provisioning_ip_address %}
+    {% if order.status == 'ACTIVE' and order.ssh_host and order.ssh_username %}
       <p class="muted">Connect with the private key that matches the public key supplied when you ordered this VPS.</p>
       <div class="connection-box">
-        <span>IP address</span>
-        <strong><code id="server-ip">{{ order.provisioning_ip_address }}</code></strong>
-        <button class="copy-button" type="button" data-copy="{{ order.provisioning_ip_address }}">Copy IP</button>
+        <span>Host</span>
+        <strong><code id="server-ip">{{ order.ssh_host }}</code></strong>
+        <button class="copy-button" type="button" data-copy="{{ order.ssh_host }}">Copy host</button>
       </div>
       <div class="connection-box">
         <span>SSH</span>
-        <strong><code id="ssh-command">ssh {% if order.ssh_username %}{{ order.ssh_username }}{% else %}&lt;username&gt;{% endif %}@{{ order.provisioning_ip_address }}</code></strong>
-        <button class="copy-button" type="button" data-copy="ssh {% if order.ssh_username %}{{ order.ssh_username }}{% else %}<username>{% endif %}@{{ order.provisioning_ip_address }}">Copy command</button>
+        <strong><code id="ssh-command">ssh -p {{ order.ssh_port }} {% if order.ssh_username %}{{ order.ssh_username }}{% else %}&lt;username&gt;{% endif %}@{{ order.ssh_host }}</code></strong>
+        <button class="copy-button" type="button" data-copy="ssh -p {{ order.ssh_port }} {% if order.ssh_username %}{{ order.ssh_username }}{% else %}<username>{% endif %}@{{ order.ssh_host }}">Copy command</button>
       </div>
-      <p class="muted connection-note">Default SSH port: 22</p>
+      <p class="muted connection-note">SSH port: {{ order.ssh_port }}</p>
     {% else %}
       <div class="empty compact-empty">
-        <h3>Waiting for an IP address</h3>
-        <p>Connection details will appear here when provisioning finishes and the guest reports its address.</p>
+        <h3>Preparing remote access</h3>
+        <p>Your public SSH connection details will appear here when remote access is ready.</p>
       </div>
     {% endif %}
   </section>

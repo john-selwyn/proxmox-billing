@@ -65,6 +65,8 @@ class Order(models.Model):
     provisioning_checked_at = models.DateTimeField(null=True, blank=True, editable=False)
     ssh_username = models.CharField(max_length=32, blank=True, default="", editable=False)
     ssh_public_key = models.TextField(blank=True, default="", editable=False)
+    ssh_host = models.CharField(max_length=255, blank=True, default="", editable=False)
+    ssh_port = models.PositiveIntegerField(default=22, editable=False)
 
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
