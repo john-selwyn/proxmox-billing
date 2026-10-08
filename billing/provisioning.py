@@ -47,7 +47,9 @@ def _claim(order_id, *, sync, retry):
         order = Order.objects.select_for_update().get(pk=order_id)
         require_paid(order)
         if order.status == Order.Status.ACTIVE and (
-            not sync or (order.provisioning_ip_address and order.ssh_host)
+            not sync or (order.provisioning_ip_address and (
+                order.rdp_host if order.operating_system == Order.OperatingSystem.WINDOWS_11 else order.ssh_host
+            ))
         ):
             return None
         if order.provisioning_lease and order.provisioning_started_at and order.provisioning_started_at > now - LEASE_TIME:
@@ -65,6 +67,11 @@ def _claim(order_id, *, sync, retry):
             operating_system = (order.operating_system or '').strip()
             if operating_system not in Order.OperatingSystem.values:
                 raise ValidationError('The order operating system is not supported.')
+            if operating_system == Order.OperatingSystem.WINDOWS_11:
+                if plan.cpu < 2 or plan.ram < 4 or plan.storage < 64:
+                    raise ValidationError('The Windows plan has insufficient resources.')
+                if order.ssh_username or order.ssh_public_key:
+                    raise ValidationError('Windows access uses Remote Desktop credentials.')
             payload = {'order_id': order.pk, 'name': f'customer-{order.customer_id}-vps-{order.pk}',
                        'cpu': plan.cpu, 'ram': plan.ram, 'storage': plan.storage,
                        'os': operating_system, 'billing_cycle': order.billing_cycle,
@@ -114,6 +121,8 @@ def _finish(order_id, lease, result=None, error=''):
             order.provisioning_ip_address = result.ip_address or order.provisioning_ip_address
             if result.ssh_host is not None:
                 order.ssh_host, order.ssh_port = result.ssh_host, result.ssh_port
+            if result.rdp_host is not None and order.operating_system == Order.OperatingSystem.WINDOWS_11:
+                order.rdp_host, order.rdp_port = result.rdp_host, result.rdp_port
             if result.status == Order.Status.ACTIVE:
                 now = timezone.now()
                 subscription, created = Subscription.objects.get_or_create(order=order, defaults={
@@ -129,7 +138,7 @@ def _finish(order_id, lease, result=None, error=''):
         order.save(update_fields=['status', 'provisioning_status', 'provisioning_error',
             'provisioning_vps_id', 'provisioning_vmid', 'provisioning_progress',
             'provisioning_step', 'provisioning_ip_address', 'provisioning_lease',
-            'provisioning_checked_at', 'ssh_host', 'ssh_port', 'updated_at'])
+            'provisioning_checked_at', 'ssh_host', 'ssh_port', 'rdp_host', 'rdp_port', 'updated_at'])
     return order
 
 

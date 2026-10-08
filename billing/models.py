@@ -67,6 +67,8 @@ class Order(models.Model):
     ssh_public_key = models.TextField(blank=True, default="", editable=False)
     ssh_host = models.CharField(max_length=255, blank=True, default="", editable=False)
     ssh_port = models.PositiveIntegerField(default=22, editable=False)
+    rdp_host = models.CharField(max_length=253, blank=True, default="", editable=False)
+    rdp_port = models.PositiveIntegerField(default=3389, editable=False)
 
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
@@ -83,6 +85,7 @@ class Order(models.Model):
     class OperatingSystem(models.TextChoices):
         UBUNTU_26_04 = "Ubuntu 26.04", "Ubuntu 26.04 LTS"
         DEBIAN_13 = "Debian 13", "Debian 13"
+        WINDOWS_11 = "Windows 11", "Windows 11"
 
     customer = models.ForeignKey(
         Customer,

@@ -13,6 +13,7 @@ from django.views.decorators.debug import sensitive_variables
 
 from .models import VPSPowerOperation
 from .ssh_endpoint import parse_ssh_endpoint
+from .rdp_endpoint import parse_rdp_endpoint
 
 
 class VPSControlError(Exception):
@@ -30,6 +31,8 @@ class VPSRuntime:
     ip_address: str = ""
     ssh_host: str | None = None
     ssh_port: int | None = None
+    rdp_host: str | None = None
+    rdp_port: int | None = None
 
 
 @dataclass(frozen=True)
@@ -141,7 +144,7 @@ def _request(method, path, *, payload=None, extra_headers=None):
 def _parse_runtime(data, order_id):
     required = {"version", "billing_order_id", "state", "observed_at", "ip_address"}
     if (not isinstance(data, dict) or not required <= data.keys()
-            or set(data) - required - {"ssh_access"} or data.get("version") != 1):
+            or set(data) - required - {"ssh_access", "rdp_access"} or data.get("version") != 1):
         raise VPSControlError("INVALID_RESPONSE")
     if data.get("billing_order_id") != int(order_id):
         raise VPSControlError("ORDER_MISMATCH")
@@ -164,10 +167,11 @@ def _parse_runtime(data, order_id):
 
     try:
         ssh_host, ssh_port = parse_ssh_endpoint(data)
+        rdp_host, rdp_port = parse_rdp_endpoint(data)
     except ValueError:
         raise VPSControlError("INVALID_RESPONSE") from None
     return VPSRuntime(state=state, observed_at=observed_at, ip_address=ip_address,
-                      ssh_host=ssh_host, ssh_port=ssh_port)
+                      ssh_host=ssh_host, ssh_port=ssh_port, rdp_host=rdp_host, rdp_port=rdp_port)
 
 
 def _parse_power(data, order_id, action):

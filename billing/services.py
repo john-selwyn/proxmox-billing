@@ -1,5 +1,6 @@
 """Order creation; payment recording and provisioning live in separate services."""
 from datetime import timedelta
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from .models import Invoice, Order, VPSPlan
@@ -34,6 +35,13 @@ def confirm_order(*, customer, plan_id, cycle, checkout_token, reviewed_amount,
         return existing
     # Serialize purchases on PostgreSQL; uniqueness also protects token retries.
     plan = VPSPlan.objects.select_for_update().get(pk=plan_id, is_active=True)
+    if operating_system == Order.OperatingSystem.WINDOWS_11:
+        if not settings.WINDOWS_ORDERING_ENABLED:
+            raise ValidationError("Windows ordering is not available yet.")
+        if plan.cpu < 2 or plan.ram < 4 or plan.storage < 64:
+            raise ValidationError("Windows 11 requires at least 2 vCPU, 4 GB RAM, and 64 GB storage.")
+        if ssh_username or ssh_public_key:
+            raise ValidationError("Windows access uses Remote Desktop credentials.")
     amount = plan_amount(plan, cycle)
     if str(amount) != reviewed_amount:
         raise ValidationError('The plan price has changed. Please review your order again.')

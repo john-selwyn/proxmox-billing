@@ -2,6 +2,7 @@ import base64
 import binascii
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import UserCreationForm
 from .models import Customer, Order
 
@@ -52,6 +53,7 @@ class BillingCycleForm(forms.Form):
     billing_cycle = forms.ChoiceField(choices=Order.BillingCycle.choices, widget=forms.RadioSelect)
     ssh_public_key = forms.CharField(
         label="SSH public key",
+        required=False,
         max_length=4096,
         strip=True,
         validators=[validate_ssh_public_key],
@@ -63,3 +65,25 @@ class BillingCycleForm(forms.Form):
         }),
         help_text="Paste your PUBLIC key only. Never paste your private key.",
     )
+
+    def __init__(self, *args, plan=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.plan = plan
+        if not settings.WINDOWS_ORDERING_ENABLED:
+            self.fields["operating_system"].choices = [
+                choice for choice in Order.OperatingSystem.choices
+                if choice[0] != Order.OperatingSystem.WINDOWS_11
+            ]
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("operating_system") == Order.OperatingSystem.WINDOWS_11:
+            if (self.plan is None or self.plan.cpu < 2
+                    or self.plan.ram < 4 or self.plan.storage < 64):
+                raise forms.ValidationError(
+                    "Windows 11 requires at least 2 vCPU, 4 GB RAM, and 64 GB storage."
+                )
+            cleaned["ssh_public_key"] = ""
+        elif cleaned.get("operating_system") and not cleaned.get("ssh_public_key"):
+            self.add_error("ssh_public_key", "An SSH public key is required for Linux.")
+        return cleaned
