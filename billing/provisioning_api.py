@@ -6,6 +6,7 @@ import requests
 from django.conf import settings
 from django.views.decorators.debug import sensitive_variables
 from .ssh_endpoint import parse_ssh_endpoint
+from .rdp_endpoint import parse_rdp_endpoint
 
 
 class ProvisioningAPIError(Exception):
@@ -27,6 +28,8 @@ class ProvisioningResult:
     error: str = ''
     ssh_host: str | None = None
     ssh_port: int | None = None
+    rdp_host: str | None = None
+    rdp_port: int | None = None
 
 
 def parse_response(data, *, order_id):
@@ -78,12 +81,14 @@ def parse_response(data, *, order_id):
 
     try:
         ssh_host, ssh_port = parse_ssh_endpoint(data)
+        rdp_host, rdp_port = parse_rdp_endpoint(data)
     except ValueError:
         raise ProvisioningAPIError('INVALID_RESPONSE') from None
     return ProvisioningResult(
         mapped, *ids, progress=progress, current_step=current_step,
         ip_address=ip_address, error='REMOTE_FAILED' if mapped == 'FAILED' else '',
         ssh_host=ssh_host, ssh_port=ssh_port,
+        rdp_host=rdp_host, rdp_port=rdp_port,
     )
 
 

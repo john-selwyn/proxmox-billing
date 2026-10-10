@@ -158,6 +158,7 @@ PROVISIONING_ALLOW_HTTP = os.getenv("PROVISIONING_ALLOW_HTTP", "False").strip().
 BILLING_API_SECRET = os.getenv("BILLING_API_SECRET", "")
 # Must match an OS identifier accepted by the existing provisioner.
 PROVISIONING_DEFAULT_OS = os.getenv("PROVISIONING_DEFAULT_OS", "Ubuntu 26.04")
+WINDOWS_ORDERING_ENABLED = os.getenv("WINDOWS_ORDERING_ENABLED", "False").strip().lower() == "true"
 
 XENDIT_SECRET_API_KEY = os.getenv("XENDIT_SECRET_API_KEY", "")
 XENDIT_WEBHOOK_TOKEN = os.getenv("XENDIT_WEBHOOK_TOKEN", "")

@@ -9,11 +9,14 @@ from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
+from django.views.decorators.cache import never_cache
+from django.views.decorators.debug import sensitive_variables
+from .windows_access import get_windows_credentials
 from .xendit import configured as xendit_configured
 from .forms import AccountForm, BillingCycleForm, RegistrationForm
 from .hestia import list_packages
 from .models import Customer, Invoice, Order, Subscription, VPSPlan, VPSPowerOperation
-from .provisioning import get_vps_provisioning_status
+from .provisioning import get_vps_provisioning_status, require_paid
 from .services import confirm_order, plan_amount
 from .vps_control import VPSControlError, get_vps_runtime, sync_power_operation
 
@@ -159,6 +162,10 @@ def vps_runtime_status(request, order_id):
         Order.objects.filter(pk=order.pk).update(ssh_host=runtime.ssh_host, ssh_port=runtime.ssh_port)
         order.ssh_host, order.ssh_port = runtime.ssh_host, runtime.ssh_port
 
+    if runtime.rdp_host is not None and order.operating_system == Order.OperatingSystem.WINDOWS_11:
+        Order.objects.filter(pk=order.pk).update(rdp_host=runtime.rdp_host, rdp_port=runtime.rdp_port)
+        order.rdp_host, order.rdp_port = runtime.rdp_host, runtime.rdp_port
+
     return JsonResponse({
         'available': True,
         'state': runtime.state,
@@ -166,8 +173,31 @@ def vps_runtime_status(request, order_id):
         'ip_address': runtime.ip_address or order.provisioning_ip_address or '',
         'ssh_host': order.ssh_host,
         'ssh_port': order.ssh_port,
+        'rdp_host': order.rdp_host,
+        'rdp_port': order.rdp_port,
         'operation': operation_data,
     })
+
+
+@never_cache
+@login_required
+@require_POST
+@sensitive_variables()
+def windows_credentials(request, order_id):
+    order = get_object_or_404(
+        Order.objects.select_related('invoice'), pk=order_id,
+        customer__user=request.user, invoice__status=Invoice.Status.PAID,
+        status=Order.Status.ACTIVE, operating_system=Order.OperatingSystem.WINDOWS_11,
+    )
+    try:
+        require_paid(order)
+    except ValidationError:
+        return JsonResponse({'error': 'Verified payment is required.'}, status=403)
+    try:
+        credentials = get_windows_credentials(order.pk)
+    except VPSControlError:
+        return JsonResponse({'error': 'Windows access is temporarily unavailable.'}, status=503)
+    return JsonResponse({'rdp_access': credentials})
 
 
 @login_required
@@ -234,12 +264,12 @@ def plans(request):
 @require_http_methods(['GET', 'POST'])
 def select_plan(request, plan_id):
     plan = get_object_or_404(VPSPlan, pk=plan_id, is_active=True)
-    form = BillingCycleForm(request.POST if request.method == 'POST' else None)
+    form = BillingCycleForm(request.POST if request.method == 'POST' else None, plan=plan)
     if request.method == 'POST' and form.is_valid():
         cycle = form.cleaned_data['billing_cycle']
         operating_system = form.cleaned_data['operating_system']
         ssh_public_key = form.cleaned_data['ssh_public_key']
-        ssh_username = 'vpsuser'
+        ssh_username = '' if operating_system == 'Windows 11' else 'vpsuser'
         try:
             amount = plan_amount(plan, cycle)
         except ValidationError as exc:
@@ -320,6 +350,8 @@ def provisioning_status(request, order_id):
         'error': bool(order.provisioning_error),
         'ssh_host': order.ssh_host,
         'ssh_port': order.ssh_port,
+        'rdp_host': order.rdp_host,
+        'rdp_port': order.rdp_port,
     })
 
 

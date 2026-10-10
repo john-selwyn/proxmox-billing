@@ -18,8 +18,27 @@
 </p>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button>Review order &rarr;</button>
 </form>
-<p class="muted">Choose Ubuntu 26.04 LTS or Debian 13. Your SSH public key will be installed during provisioning. Keep the matching private key only on your own device.</p>
+<p class="muted" id="access-help">Linux uses your SSH public key. Windows 11 uses an Admin password available on your VPS page when provisioning completes. Windows requires at least 2 vCPU, 4 GB RAM, and 64 GB storage.</p>
 <p class="muted">You can review the total before confirming.</p>
 <a href="{% url 'plans' %}">Back to plans</a>
 </section>
-</div>{% endblock %}
+</div>
+<script>
+(() => {
+  const os = document.getElementById('id_operating_system');
+  const key = document.getElementById('id_ssh_public_key');
+  if (!os || !key) return;
+  function updateAccess() {
+    const windows = os.value === 'Windows 11';
+    key.disabled = windows;
+    key.required = !windows;
+    key.closest('p').hidden = windows;
+    document.getElementById('access-help').textContent = windows
+      ? 'Connect through Remote Desktop as Admin. Your password will be available on your VPS page. Requires at least 2 vCPU, 4 GB RAM, and 64 GB storage.'
+      : 'Your SSH public key will be installed during provisioning. Keep the matching private key on your own device.';
+  }
+  os.addEventListener('change', updateAccess);
+  updateAccess();
+})();
+</script>
+{% endblock %}

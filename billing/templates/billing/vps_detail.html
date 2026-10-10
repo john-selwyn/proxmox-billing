@@ -25,7 +25,7 @@
       <dt>Private IP address</dt>
       <dd>{% if order.provisioning_ip_address %}<code>{{ order.provisioning_ip_address }}</code>{% else %}<span class="muted">Assigning...</span>{% endif %}</dd>
       <dt>VMID</dt><dd>{{ order.provisioning_vmid|default:"Assigning..." }}</dd>
-      <dt>Operating system</dt><dd>{{ order.provisioning_payload.os|default:"Ubuntu" }}</dd>
+      <dt>Operating system</dt><dd>{{ order.operating_system }}</dd>
       <dt>vCPU</dt><dd>{{ order.plan.cpu }}</dd>
       <dt>Memory</dt><dd>{{ order.plan.ram }} GB</dd>
       <dt>Storage</dt><dd>{{ order.plan.storage }} GB</dd>
@@ -56,7 +56,30 @@
 
   <section class="card">
     <h2>Remote access</h2>
-    {% if order.status == 'ACTIVE' and order.ssh_host and order.ssh_username %}
+    {% if order.operating_system == 'Windows 11' %}
+      {% if order.status == 'ACTIVE' and order.rdp_host %}
+      <p class="muted">Open Remote Desktop Connection and enter this computer address.</p>
+      <div class="connection-box">
+        <span>Computer</span><strong><code>{{ order.rdp_host }}:{{ order.rdp_port }}</code></strong>
+        <button class="copy-button" type="button" data-copy="{{ order.rdp_host }}:{{ order.rdp_port }}">Copy address</button>
+      </div>
+      <div class="connection-box"><span>Username</span><strong><code>Admin</code></strong></div>
+      <form id="windows-access-form" method="post" action="{% url 'windows_credentials' order.pk %}">
+        {% csrf_token %}<button id="reveal-windows-password" type="submit">Show initial password</button>
+      </form>
+      <div id="windows-password-box" hidden>
+        <label for="windows-password">Initial password</label>
+        <input id="windows-password" type="text" readonly autocomplete="off" spellcheck="false">
+        <button id="copy-windows-password" class="copy-button" type="button">Copy password</button>
+        <button id="hide-windows-password" class="copy-button" type="button">Hide password</button>
+      </div>
+      <p id="windows-access-message" role="status" aria-live="polite"></p>
+      <p class="muted">Change this password inside Windows after your first sign-in. The password shown here is the original provisioning password.</p>
+      {% else %}
+      <div class="empty compact-empty"><h3>Preparing Remote Desktop</h3>
+        <p>Your RDP connection details will appear when remote access is ready.</p></div>
+      {% endif %}
+    {% elif order.status == 'ACTIVE' and order.ssh_host and order.ssh_username %}
       <p class="muted">Connect with the private key that matches the public key supplied when you ordered this VPS.</p>
       <div class="connection-box">
         <span>Host</span>
@@ -96,6 +119,43 @@
 </div>
 
 <script>
+(() => {
+  const form = document.getElementById('windows-access-form');
+  if (!form) return;
+  const box = document.getElementById('windows-password-box');
+  const input = document.getElementById('windows-password');
+  const button = document.getElementById('reveal-windows-password');
+  const message = document.getElementById('windows-access-message');
+  let timer;
+  function hide() { clearTimeout(timer); input.value = ''; box.hidden = true; }
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    hide(); button.disabled = true; message.textContent = '';
+    try {
+      const response = await fetch(form.action, {
+        method: 'POST', cache: 'no-store', credentials: 'same-origin',
+        headers: {'X-CSRFToken': form.elements.csrfmiddlewaretoken.value}
+      });
+      if (!response.ok) throw new Error('unavailable');
+      const data = await response.json();
+      if (!data.rdp_access || typeof data.rdp_access.password !== 'string') throw new Error('invalid');
+      input.value = data.rdp_access.password;
+      box.hidden = false;
+      timer = setTimeout(hide, 60000);
+    } catch (error) {
+      message.textContent = 'Password unavailable. Please try again shortly.';
+    } finally { button.disabled = false; }
+  });
+  document.getElementById('hide-windows-password').addEventListener('click', hide);
+  document.getElementById('copy-windows-password').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(input.value);
+      message.textContent = 'Password copied.';
+    } catch (error) { message.textContent = 'Copy failed. Select the password and copy it manually.'; }
+  });
+  window.addEventListener('pagehide', hide);
+})();
+
 document.querySelectorAll("[data-copy]").forEach((button) => {
   button.addEventListener("click", async () => {
     try {
@@ -158,6 +218,9 @@ document.querySelectorAll("form[data-confirm]").forEach((form) => {
       const data = await response.json();
       {% if not order.ssh_host %}
       if (data.ssh_host) { window.location.reload(); return; }
+      {% endif %}
+      {% if order.operating_system == 'Windows 11' and not order.rdp_host %}
+      if (data.rdp_host) { window.location.reload(); return; }
       {% endif %}
       const state = data.available ? data.state : "unknown";
 
