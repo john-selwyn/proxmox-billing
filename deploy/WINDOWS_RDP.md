@@ -86,3 +86,43 @@ necessary; do not reset unrelated changes or remove stored endpoints. Production
 browser verification remains pending until deployed. No new payment is needed:
 open an existing active Windows page to verify endpoints, and observe the next
 normal provisioning run for the transition behavior.
+
+
+## Clear remote-access waiting stages - 2026-10-10
+
+The user confirmed a later Windows order worked with the background retry worker,
+but requested clearer waiting feedback before remote details appear. The UI now
+labels the percent as VPS creation, separately shows VPS running and Remote
+Desktop/SSH preparation, and displays elapsed waiting time plus a countdown to
+the next status check. It explicitly describes automatic retries and updates.
+The countdown is for the next poll, not a promise of connection readiness.
+
+The per-order waiting start is retained only as a timestamp in sessionStorage
+(no credentials), survives refresh in that tab, and clears on ready/failure.
+Storage failure falls back to an in-memory timestamp. After five minutes the
+message continues automatic checks and gives the order reference for support.
+Animation respects reduced-motion preferences. Timers stop on ready, failure
+or page exit; ready-page polling and existing power controls retain their behavior.
+
+Verification: all 146 Django SQLite tests and nine JavaScript poller tests passed;
+system and migration checks passed. Production visual verification pending.
+This is presentation only: no change to worker retries, port reservations, or
+relay configuration. The source of earlier RDP delay remains distinct from UI.
+
+Deployment on billing-server:
+
+```sh
+cd /opt/billing
+git pull --ff-only origin codex/windows-rdp
+./venv/bin/python manage.py check
+./venv/bin/python manage.py collectstatic --noinput
+sudo systemctl restart billing.service
+systemctl is-active billing.service
+```
+
+collectstatic is required for the added styles; a stylesheet version query avoids
+old browser cache. No database migration. Refresh an already-open page once to
+load updated inline code. For rollback, revert only this UI commit after review,
+collectstatic again, restart and check the service; preserve .env and endpoints.
+No new payment is required for deployment; observe the next normal provisioning
+run for pending-to-ready feedback.

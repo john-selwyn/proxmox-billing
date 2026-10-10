@@ -76,8 +76,9 @@
       <p id="windows-access-message" role="status" aria-live="polite"></p>
       <p class="muted">Change this password inside Windows after your first sign-in. The password shown here is the original provisioning password.</p>
       {% else %}
-      <div class="empty compact-empty"><h3>Preparing Remote Desktop</h3>
-        <p>Your RDP connection details will appear when remote access is ready.</p></div>
+      <div class="empty compact-empty"><span class="access-spinner" aria-hidden="true"></span><h3>Preparing Remote Desktop</h3>
+        <p>{% if order.status == 'ACTIVE' %}Your VPS is running. We are preparing your Remote Desktop connection.{% else %}Remote Desktop setup starts once your VPS is running.{% endif %}</p>
+        <p>Connection details appear automatically when ready. You can leave this page open.</p></div>
       {% endif %}
     {% elif order.status == 'ACTIVE' and order.ssh_host and order.ssh_username %}
       <p class="muted">Connect with the private key that matches the public key supplied when you ordered this VPS.</p>
@@ -95,8 +96,8 @@
       <p class="muted">If your private key has a custom filename, add <code>-i "path-to-your-private-key"</code> to the SSH command.</p>
     {% else %}
       <div class="empty compact-empty">
-        <h3>Preparing remote access</h3>
-        <p>Your public SSH connection details will appear here when remote access is ready.</p>
+        <span class="access-spinner" aria-hidden="true"></span><h3>Preparing remote access</h3>
+        <p>Your SSH connection details will appear automatically when ready. You can leave this page open.</p>
       </div>
     {% endif %}
   </section>

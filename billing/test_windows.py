@@ -200,3 +200,15 @@ class WindowsTests(TestCase):
         self.assertContains(response, 'data-operating-system="Windows 11"')
         self.assertContains(response, 'data-initial-access=""')
         self.assertContains(response, 'Preparing Remote Desktop')
+
+
+    def test_waiting_page_labels_creation_and_automatic_remote_access_separately(self):
+        order = self.order()
+        order.rdp_host = ""
+        order.save(update_fields=["rdp_host"])
+        response = self.client.get(reverse("vps_detail", args=[order.pk]))
+        self.assertContains(response, "VPS creation")
+        self.assertContains(response, "VPS running")
+        self.assertContains(response, "We are preparing your Remote Desktop connection")
+        self.assertContains(response, "Connection details appear automatically when ready")
+        self.assertContains(response, 'id="access-next-check"')

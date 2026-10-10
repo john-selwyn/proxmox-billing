@@ -24,15 +24,29 @@
         {% endif %}
       </p>
     </div>
-    <strong class="provisioning-percent" id="provisioning-percent">
-      {% if order.status == 'ACTIVE' %}100{% else %}{{ order.provisioning_progress }}{% endif %}%
-    </strong>
+    <div class="provisioning-progress-summary">
+      <strong class="provisioning-percent" id="provisioning-percent">
+        {% if order.status == 'ACTIVE' %}100{% else %}{{ order.provisioning_progress }}{% endif %}%
+      </strong>
+      <span class="provisioning-progress-label">VPS creation</span>
+    </div>
   </div>
 
   {% if order.status != 'FAILED' %}
   <div class="provisioning-track" aria-label="VPS provisioning progress">
     <div class="provisioning-bar" id="provisioning-bar"
          style="width:{% if order.status == 'ACTIVE' %}100{% else %}{{ order.provisioning_progress }}{% endif %}%"></div>
+  </div>
+  {% endif %}
+
+  {% if order.status != 'FAILED' %}
+  <div class="setup-stages" aria-label="Setup stages">
+    <span id="setup-vps-state" class="setup-stage">{% if order.status == 'ACTIVE' %}VPS running{% else %}Creating VPS{% endif %}</span>
+    <span id="setup-access-state" class="setup-stage">Remote access pending</span>
+  </div>
+  <div id="access-wait-status" class="access-wait-status" hidden>
+    <p id="access-wait-message" role="status" aria-live="polite"></p>
+    <p class="access-wait-timing"><span id="access-wait-elapsed"></span> &middot; <span id="access-next-check"></span></p>
   </div>
   {% endif %}
 
@@ -61,11 +75,62 @@
   const initialStatus = root.dataset.initialStatus;
   const isWindows = root.dataset.operatingSystem === "Windows 11";
   const initialAccessReady = root.dataset.initialAccess === "ready";
-  if (initialStatus === "ACTIVE" && root.dataset.initialIp && initialAccessReady) return;
+  const vpsStage = document.getElementById("setup-vps-state");
+  const accessStage = document.getElementById("setup-access-state");
+  const waitStatus = document.getElementById("access-wait-status");
+  const waitMessage = document.getElementById("access-wait-message");
+  const elapsed = document.getElementById("access-wait-elapsed");
+  const nextCheck = document.getElementById("access-next-check");
+  const label = isWindows ? "Remote Desktop" : "SSH access";
+  const waitKey = "vps-access-wait-" + root.dataset.orderId;
+  let waitingSince = 0;
+  let nextCheckAt = 0;
   let stopped = false;
+  let clock;
+
+  function clearWait() {
+    waitingSince = 0;
+    waitStatus.hidden = true;
+    try { sessionStorage.removeItem(waitKey); } catch (error) { /* Storage is optional. */ }
+  }
+  function updateWait() {
+    if (!waitingSince || stopped) return;
+    const seconds = Math.max(0, Math.floor((Date.now() - waitingSince) / 1000));
+    elapsed.textContent = "Waiting " + Math.floor(seconds / 60) + "m " + String(seconds % 60).padStart(2, "0") + "s";
+    nextCheck.textContent = nextCheckAt > Date.now()
+      ? "Next status check in " + Math.ceil((nextCheckAt - Date.now()) / 1000) + "s"
+      : "Checking status...";
+    waitMessage.textContent = seconds >= 300
+      ? "Setup is still in progress. Automatic retries continue. For help, contact support with order #" + root.dataset.orderId + "."
+      : "Your VPS is running. We are preparing " + label + ". Setup retries automatically; your connection details will appear here. No refresh needed.";
+  }
+  function showStages(active, ready) {
+    vpsStage.textContent = active ? "VPS running" : "Creating VPS";
+    vpsStage.className = "setup-stage" + (active ? " complete" : " working");
+    accessStage.textContent = ready ? label + " ready" : (active ? "Preparing " + label : label + " pending");
+    accessStage.className = "setup-stage" + (ready ? " complete" : active ? " working" : "");
+    if (active && !ready) {
+      if (!waitingSince) {
+        try {
+          const saved = Number(sessionStorage.getItem(waitKey));
+          waitingSince = saved > 0 && saved <= Date.now() ? saved : Date.now();
+          sessionStorage.setItem(waitKey, String(waitingSince));
+        } catch (error) { waitingSince = Date.now(); }
+      }
+      waitStatus.hidden = false;
+      updateWait();
+    } else { clearWait(); }
+  }
+  function stop() { stopped = true; clearInterval(clock); }
+  showStages(initialStatus === "ACTIVE", initialStatus === "ACTIVE" && initialAccessReady);
+  if (initialStatus === "ACTIVE" && root.dataset.initialIp && initialAccessReady) return;
+  clock = setInterval(updateWait, 1000);
+  window.addEventListener("pagehide", stop);
 
   async function poll() {
     if (stopped) return;
+    nextCheckAt = 0;
+    updateWait();
     try {
       const response = await fetch(url, {
         cache: "no-store",
@@ -84,6 +149,7 @@
       vmid.textContent = data.vmid || "Assigning...";
       ip.textContent = data.ip_address || "Assigning...";
 
+      showStages(data.status === "ACTIVE", data.status === "ACTIVE" && accessReady);
       if (data.status === "ACTIVE") {
         percent.textContent = "100%";
         if (bar) {
@@ -94,7 +160,8 @@
       }
 
       if (data.status === "FAILED") {
-        stopped = true;
+        stop();
+        clearWait();
         step.textContent = "VPS provisioning failed. Your payment remains recorded. Please contact support with order #" + root.dataset.orderId + ".";
         root.classList.add("provisioning-failed");
         return;
@@ -103,13 +170,15 @@
       // Render power controls on activation; keep checking delayed SSH/RDP access.
       if (data.status === "ACTIVE" &&
           (initialStatus !== "ACTIVE" || (accessReady && !initialAccessReady))) {
-        stopped = true;
+        stop();
         setTimeout(() => window.location.reload(), 700);
         return;
       }
     } catch (error) {
       step.textContent = "Checking provisioning status...";
     }
+    nextCheckAt = Date.now() + 3000;
+    updateWait();
     setTimeout(poll, 3000);
   }
 

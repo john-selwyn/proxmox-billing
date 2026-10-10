@@ -8,7 +8,10 @@ const vm = require('node:vm');
 const template = readFileSync(join(__dirname, 'templates/billing/provisioning_status.html'), 'utf8');
 const script = template.match(/<script>([\s\S]*?)<\/script>/)[1];
 const flush = () => new Promise(resolve => setImmediate(resolve));
-function page(dataset, replies) {
+function page(dataset, replies, storage = new Map()) {
+  let now = 1000000;
+  const intervals = new Map();
+  let intervalId = 0;
   const timers = [];
   let reloads = 0;
   let requests = 0;
@@ -16,13 +19,22 @@ function page(dataset, replies) {
   for (const id of ['status', 'step', 'percent', 'bar', 'vmid', 'ip']) {
     elements['provisioning-' + id] = {textContent: '', style: {}, classList: {add() {}}};
   }
+  for (const id of ['setup-vps-state', 'setup-access-state', 'access-wait-status',
+                    'access-wait-message', 'access-wait-elapsed', 'access-next-check']) {
+    elements[id] = {textContent: '', hidden: false, className: ''};
+  }
   elements['provisioning-status'].dataset = {
     orderId: '20', statusUrl: '/orders/20/provisioning-status/', initialStatus: 'ACTIVE',
     operatingSystem: 'Windows 11', initialAccess: '', initialIp: '10.60.0.19', ...dataset
   };
   vm.runInNewContext(script, {
     document: {getElementById: id => elements[id]},
-    window: {location: {reload() {reloads++;}}},
+    window: {location: {reload() {reloads++;}}, addEventListener() {}},
+    Date: {now: () => now},
+    sessionStorage: {getItem: key => storage.get(key) ?? null,
+      setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key)},
+    setInterval: fn => { intervals.set(++intervalId, fn); return intervalId; },
+    clearInterval: id => intervals.delete(id),
     setTimeout: (fn, delay) => timers.push({fn, delay}),
     fetch: async () => {
       requests++;
@@ -31,7 +43,8 @@ function page(dataset, replies) {
       return {ok: true, json: async () => reply};
     }
   });
-  return {elements, timers, reloads: () => reloads, requests: () => requests};
+  return {elements, timers, storage, reloads: () => reloads, requests: () => requests,
+    tick: ms => {now += ms; intervals.forEach(fn => fn());}, intervals};
 }
 const active = {status: 'ACTIVE', progress: 100, vmid: 1020, ip_address: '10.60.0.19',
   ssh_host: '', ssh_port: 22, rdp_host: '', rdp_port: 3389};
@@ -81,4 +94,34 @@ test('a temporary fetch error retries rather than freezing the page', async () =
   await flush();
   assert.equal(p.timers[0].delay, 3000);
   assert.equal(p.reloads(), 0);
+});
+
+
+test('waiting copy distinguishes VM completion from access and counts status checks', async () => {
+  const p = page({}, [{...active}]);
+  await flush();
+  assert.equal(p.elements['setup-vps-state'].textContent, 'VPS running');
+  assert.equal(p.elements['setup-access-state'].textContent, 'Preparing Remote Desktop');
+  assert.match(p.elements['access-wait-message'].textContent, /retries automatically/);
+  assert.equal(p.elements['access-next-check'].textContent, 'Next status check in 3s');
+  p.tick(1000);
+  assert.equal(p.elements['access-next-check'].textContent, 'Next status check in 2s');
+  assert.equal(p.elements['access-wait-elapsed'].textContent, 'Waiting 0m 01s');
+});
+test('long waits show order-specific help without claiming a completion deadline', async () => {
+  const p = page({}, [{...active}]);
+  await flush();
+  p.tick(301000);
+  assert.match(p.elements['access-wait-message'].textContent, /Automatic retries continue/);
+  assert.match(p.elements['access-wait-message'].textContent, /order #20/);
+  assert.equal(p.elements['access-wait-elapsed'].textContent, 'Waiting 5m 01s');
+});
+test('wait start survives page reload, then readiness clears it and the timer', async () => {
+  const storage = new Map([['vps-access-wait-20', '880000']]);
+  const p = page({}, [{...active, rdp_host: 'example.test', rdp_port: 22000}], storage);
+  assert.equal(p.elements['access-wait-elapsed'].textContent, 'Waiting 2m 00s');
+  await flush();
+  assert.equal(p.elements['access-wait-status'].hidden, true);
+  assert.equal(storage.has('vps-access-wait-20'), false);
+  assert.equal(p.intervals.size, 0);
 });
