@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>{% block title %}Customer portal{% endblock %} | ICT Ventures</title>
+<title>{% block title %}Customer portal{% endblock %} | ICT Ventures Cloud Portal</title>
 <link rel="stylesheet" href="{% static 'billing/portal.css' %}?v=access-stages-1">
 <link rel="stylesheet" href="{% static 'billing/portal-modern.css' %}">
 <link rel="stylesheet" href="{% static 'billing/storefront.css' %}">
@@ -15,9 +15,9 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
 <div class="nav-wrap">
-<a class="brand" href="{% url 'home' %}" aria-label="ICT Ventures home">
+<a class="brand" href="{% url 'home' %}" aria-label="ICT Ventures Cloud Portal home">
 <span class="brand-icon" aria-hidden="true">+</span>
-<span class="brand-copy"><strong>ICT Ventures</strong><small>Cloud services</small></span>
+<span class="brand-copy"><strong>ICT Ventures</strong><small>Cloud Portal</small></span>
 </a>
 <nav aria-label="Main navigation">
 {% with current=request.resolver_match.url_name %}
@@ -44,7 +44,7 @@
 {% block content %}{% endblock %}
 </main>
 <footer class="container site-footer">
-<div><strong>ICT Ventures</strong><span>Servers, billing &amp; account management</span></div>
+<div><strong>ICT Ventures</strong><span>Cloud Portal — services, orders &amp; account management</span></div>
 <span>Secure customer access &middot; SSH key authentication</span>
 </footer>
 </body>
