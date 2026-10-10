@@ -1,7 +1,12 @@
 {% if order.invoice.status == 'PAID' %}
 <div class="notice provisioning-card"
      id="provisioning-status"
-     data-status-url="{% url 'customer_provisioning_status' order.pk %}">
+     data-status-url="{% url 'customer_provisioning_status' order.pk %}"
+     data-order-id="{{ order.pk }}"
+     data-initial-status="{{ order.status }}"
+     data-operating-system="{{ order.operating_system }}"
+     data-initial-ip="{{ order.provisioning_ip_address|default:'' }}"
+     data-initial-access="{% if order.operating_system == 'Windows 11' %}{% if order.rdp_host and order.rdp_port %}ready{% endif %}{% elif order.ssh_host and order.ssh_port %}ready{% endif %}">
   <div class="provisioning-heading">
     <div>
       <strong>Payment confirmed</strong>
@@ -42,7 +47,6 @@
 </div>
 
 {% if order.status != 'FAILED' %}
-{% if order.status != 'ACTIVE' or not order.provisioning_ip_address or not order.ssh_host %}
 <script>
 (() => {
   const root = document.getElementById("provisioning-status");
@@ -54,6 +58,10 @@
   const vmid = document.getElementById("provisioning-vmid");
   const ip = document.getElementById("provisioning-ip");
   const url = root.dataset.statusUrl;
+  const initialStatus = root.dataset.initialStatus;
+  const isWindows = root.dataset.operatingSystem === "Windows 11";
+  const initialAccessReady = root.dataset.initialAccess === "ready";
+  if (initialStatus === "ACTIVE" && root.dataset.initialIp && initialAccessReady) return;
   let stopped = false;
 
   async function poll() {
@@ -66,6 +74,9 @@
       if (!response.ok) throw new Error("status unavailable");
 
       const data = await response.json();
+      const accessReady = Boolean(isWindows
+        ? data.rdp_host && data.rdp_port
+        : data.ssh_host && data.ssh_port);
       const value = Math.max(0, Math.min(100, Number(data.progress) || 0));
       percent.textContent = value + "%";
       if (bar) bar.style.width = value + "%";
@@ -79,18 +90,19 @@
           bar.style.width = "100%";
           bar.classList.add("complete");
         }
-        step.textContent = data.ssh_host ? "VPS ready. Connection details are available." : "VPS ready. Preparing remote access...";
+        step.textContent = accessReady ? "VPS ready. Connection details are available." : "VPS ready. Preparing remote access...";
       }
 
       if (data.status === "FAILED") {
         stopped = true;
-        step.textContent = "VPS provisioning failed. Your payment remains recorded. Please contact support with order #{{ order.pk }}.";
+        step.textContent = "VPS provisioning failed. Your payment remains recorded. Please contact support with order #" + root.dataset.orderId + ".";
         root.classList.add("provisioning-failed");
         return;
       }
 
-      // A private guest IP alone is not proof that public SSH access is ready.
-      if (data.status === "ACTIVE" && data.ip_address && data.ssh_host) {
+      // Render power controls on activation; keep checking delayed SSH/RDP access.
+      if (data.status === "ACTIVE" &&
+          (initialStatus !== "ACTIVE" || (accessReady && !initialAccessReady))) {
         stopped = true;
         setTimeout(() => window.location.reload(), 700);
         return;
@@ -104,6 +116,5 @@
   poll();
 })();
 </script>
-{% endif %}
 {% endif %}
 {% endif %}

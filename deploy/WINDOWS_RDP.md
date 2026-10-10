@@ -53,3 +53,36 @@ and restart the billing application. Never commit `.env` or encryption keys.
 The billing suite passes on an isolated SQLite test database. Run PostgreSQL tests
 against a separate test database in staging; local SQLite checks do not validate
 PostgreSQL locking or a live Proxmox/EdgeRouter deployment.
+
+
+## Progress reaches 100% but RDP/power controls require refresh
+
+Problem reported 2026-10-10: a new Windows order completed and worked, but the
+open management page stayed at Preparing Remote Desktop until manually refreshed.
+Confirmed code cause: customer provisioning-status JSON omitted rdp_host/rdp_port;
+the shared poller checked only ssh_host before announcing access/reloading. Power
+controls were conditional on ACTIVE at initial server render.
+
+Resolution: include the stored RDP endpoint in owner-scoped status JSON (no password),
+select SSH/RDP readiness according to OS, and reload when a pending page first
+observes ACTIVE. The active page keeps polling delayed access and reloads when its
+endpoint appears. A fully rendered ready page skips provisioning polling. Failure
+stops polling; transient errors retry. Existing runtime-state polling is retained.
+
+Validation: 145 Django tests passed with in-memory SQLite; migration consistency
+and system checks passed. Six JavaScript tests execute the actual inline poller
+with browser/network/timer mocks, covering activation, delayed RDP, Linux SSH,
+ready-page stability, failure and fetch retry:
+
+```sh
+node --test billing/test_provisioning_poll.cjs
+```
+
+Deployment on billing-server /opt/billing, after confirming a clean checkout on
+codex/windows-rdp: fast-forward the branch, run manage.py check, restart
+billing.service, verify active. No schema migration or new static asset required.
+Record the pre-update commit for rollback. Reverse only the polling-fix commit if
+necessary; do not reset unrelated changes or remove stored endpoints. Production
+browser verification remains pending until deployed. No new payment is needed:
+open an existing active Windows page to verify endpoints, and observe the next
+normal provisioning run for the transition behavior.

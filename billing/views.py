@@ -350,6 +350,8 @@ def provisioning_status(request, order_id):
         'error': bool(order.provisioning_error),
         'ssh_host': order.ssh_host,
         'ssh_port': order.ssh_port,
+        'rdp_host': order.rdp_host,
+        'rdp_port': order.rdp_port,
     })
 
 

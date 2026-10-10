@@ -178,3 +178,25 @@ class WindowsTests(TestCase):
             _finish(order.pk, lease, result)
             order.refresh_from_db()
             self.assertEqual(order.rdp_host, expected)
+
+
+    def test_provisioning_poll_includes_rdp_endpoint_without_credentials(self):
+        order = self.order()
+        with patch("billing.views.get_vps_provisioning_status", return_value=order):
+            response = self.client.get(reverse("customer_provisioning_status", args=[order.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["rdp_host"], ACCESS["host"])
+        self.assertEqual(response.json()["rdp_port"], ACCESS["port"])
+        self.assertNotIn("password", response.json())
+        self.assertNotIn(PASSWORD, response.content.decode())
+
+    def test_pending_windows_page_has_poll_activation_and_access_context(self):
+        order = self.order()
+        order.status = "PROVISIONING"
+        order.rdp_host = ""
+        order.save(update_fields=["status", "rdp_host"])
+        response = self.client.get(reverse("vps_detail", args=[order.pk]))
+        self.assertContains(response, 'data-initial-status="PROVISIONING"')
+        self.assertContains(response, 'data-operating-system="Windows 11"')
+        self.assertContains(response, 'data-initial-access=""')
+        self.assertContains(response, 'Preparing Remote Desktop')
